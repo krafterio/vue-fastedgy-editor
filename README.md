@@ -14,6 +14,25 @@ npm install vue-fastedgy-editor
 Tiptap and its extensions come with the package. Only `vue` is a peer dependency: the application
 owns the framework, and there has to be a single instance of it.
 
+## Usage
+
+```js
+import { createFeatures, createMarkdownCodec, linkFeature } from 'vue-fastedgy-editor';
+
+const codec = createMarkdownCodec(createFeatures([linkFeature()]));
+
+const doc = codec.decode(record.content); // markdown -> document
+const markdown = codec.encode(doc); // document -> markdown
+```
+
+A codec carries what its features carry. `createFeatures([])` gives plain markdown: paragraphs,
+headings, lists, tasks, quotes, rules, code blocks, and the seven inline marks.
+
+| Feature | What it adds |
+|---|---|
+| `linkFeature()` | writes a link to its own text bare |
+| `plusUnderlineFeature()` | reads `++text++` as underline, on top of `<u>` |
+
 ## Development
 
 ```bash
@@ -46,6 +65,15 @@ server: { fs: { allow: ['..', '<path to this package>'] } },
 resolves its own copies, and neither `provide` / `inject` nor a Tiptap transaction survives that.
 
 Run `npm unlink vue-fastedgy-editor` then `npm install` when you are done.
+
+### The corpus
+
+`tests/fixtures/markdown/` is the specification of the stored format, copied in verbatim from where
+that format is defined. **Do not edit it here**, and do not let a formatter touch it: every case is
+read, written back and compared byte for byte, by this package and by every other implementation, on
+the very same files.
+
+A difference found against another implementation becomes a fixture first and a fix second.
 
 ## License
 

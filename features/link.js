@@ -1,0 +1,57 @@
+/*
+ * Copyright Krafter SAS <developer@krafter.io>
+ * MIT License (see LICENSE file).
+ */
+
+/**
+ * Links, and the one thing markdown needs told about them.
+ *
+ * The mark itself belongs to the core schema, being one of the seven a run can
+ * carry. What a feature owns is the round trip: a link whose address is its own
+ * text is written bare.
+ *
+ * @returns {import('./registry.js').RichTextFeature}
+ */
+export function linkFeature() {
+    return {
+        name: 'link',
+        markdown: { before: withoutSelfLinks },
+    };
+}
+
+/**
+ * Drops the href of a run that links to its own text, so it is written bare.
+ *
+ * `[https://example.com](https://example.com)` and `https://example.com` are
+ * read back as the very same document, markdown autolinking a plain URL, so the
+ * long form carries nothing but noise into a field people and agents read.
+ *
+ * @param {object} doc - Document, ProseMirror JSON
+ * @returns {object}
+ */
+export function withoutSelfLinks(doc) {
+    return strip(doc);
+}
+
+function strip(node) {
+    if (!node || !Array.isArray(node.content)) {
+        return node;
+    }
+
+    return {
+        ...node,
+        content: node.content.map((child) => (child.type === 'text' ? bare(child) : strip(child))),
+    };
+}
+
+function bare(run) {
+    const marks = run.marks ?? [];
+
+    if (!marks.some((mark) => mark.type === 'link' && mark.attrs?.href === run.text)) {
+        return run;
+    }
+
+    const kept = marks.filter((mark) => mark.type !== 'link');
+
+    return { type: 'text', text: run.text, ...(kept.length > 0 ? { marks: kept } : {}) };
+}
