@@ -1,0 +1,7 @@
+# The shared markdown corpus is copied in verbatim and is the arbiter between
+# every implementation of the format. A formatter that rewrites it, even to add
+# a trailing newline, turns the arbiter into a snapshot of this side.
+tests/fixtures/
+
+types/
+node_modules/

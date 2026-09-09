@@ -1,0 +1,6 @@
+{
+    "ignorePatterns": [
+        "types/",
+        "tests/fixtures/"
+    ]
+}
