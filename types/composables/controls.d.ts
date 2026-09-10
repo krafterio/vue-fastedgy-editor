@@ -120,7 +120,7 @@ export const defaultRichTextControls: Readonly<{
             default: () => never[];
         };
         selected: {
-            type: (StringConstructor | NumberConstructor | null)[];
+            type: (NumberConstructor | StringConstructor | null)[];
             default: null;
         };
         onSelect: {
@@ -137,7 +137,7 @@ export const defaultRichTextControls: Readonly<{
             default: () => never[];
         };
         selected: {
-            type: (StringConstructor | NumberConstructor | null)[];
+            type: (NumberConstructor | StringConstructor | null)[];
             default: null;
         };
         onSelect: {
@@ -145,9 +145,9 @@ export const defaultRichTextControls: Readonly<{
             default: null;
         };
     }>> & Readonly<{}>, {
+        selected: string | number | null;
         label: string;
         options: unknown[];
-        selected: string | number | null;
         onSelect: Function;
     }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
     button: {
@@ -323,11 +323,11 @@ export const defaultRichTextControls: Readonly<{
     });
     placeholder: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
         width: {
-            type: (StringConstructor | NumberConstructor)[];
+            type: (NumberConstructor | StringConstructor)[];
             default: string;
         };
         height: {
-            type: (StringConstructor | NumberConstructor)[];
+            type: (NumberConstructor | StringConstructor)[];
             default: number;
         };
         radius: {
@@ -336,11 +336,11 @@ export const defaultRichTextControls: Readonly<{
         };
     }>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
         width: {
-            type: (StringConstructor | NumberConstructor)[];
+            type: (NumberConstructor | StringConstructor)[];
             default: string;
         };
         height: {
-            type: (StringConstructor | NumberConstructor)[];
+            type: (NumberConstructor | StringConstructor)[];
             default: number;
         };
         radius: {

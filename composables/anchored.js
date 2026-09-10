@@ -12,10 +12,15 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
  * are posted on mounting and taken back on unmounting, and why nothing here is
  * shared: two editors on a page each hold their own.
  *
+ * A surface also **hides when what it hangs on leaves the visible part of the
+ * editor**: an editor capped in height scrolls for itself, and a bubble left
+ * floating over a line that scrolled away points at nothing.
+ *
  * @param {() => DOMRect|null} measure - The rectangle to hang on, or `null` to hide
+ * @param {{ within?: () => Element|null }} [options] - What the anchor has to stay inside
  * @returns {{ rect: import('vue').Ref<DOMRect|null>, follow: () => void }}
  */
-export function useAnchoredRect(measure) {
+export function useAnchoredRect(measure, options = {}) {
     const rect = ref(null);
 
     // Measuring reaches into the DOM the editor drew, and what is asked for may
@@ -23,7 +28,9 @@ export function useAnchoredRect(measure) {
     // where it sits hides; it never takes the editor down with it.
     const follow = () => {
         try {
-            rect.value = measure();
+            const found = measure();
+
+            rect.value = found && inside(found, options.within?.()) ? found : null;
         } catch {
             rect.value = null;
         }
@@ -40,6 +47,23 @@ export function useAnchoredRect(measure) {
     });
 
     return { rect, follow };
+}
+
+/** Whether [rect] is still within the part of [holder] one can see. */
+function inside(rect, holder) {
+    if (!holder) {
+        return true;
+    }
+
+    const box = holder.getBoundingClientRect();
+
+    // A zero box is a jsdom box, and hiding everything under a test would prove
+    // nothing about what a browser draws.
+    if (box.width === 0 && box.height === 0) {
+        return true;
+    }
+
+    return rect.bottom >= box.top && rect.top <= box.bottom;
 }
 
 /**

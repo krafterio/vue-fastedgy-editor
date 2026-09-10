@@ -11,6 +11,7 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         include: ['tests/**/*.test.js'],
+        setupFiles: ['./vitest.setup.js'],
         server: { deps: { inline: ['vue-fastedgy'] } },
     },
 });

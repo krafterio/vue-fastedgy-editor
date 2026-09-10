@@ -1,0 +1,365 @@
+/*
+ * The theme, as variables and nothing else.
+ *
+ * Each one falls back on the shadcn token of the same meaning where an
+ * application has one, then on a plain value: an application that declared
+ * nothing gets a readable editor, and one that has its own tokens gets an editor
+ * in its colours without writing a line. Dark mode asks for nothing either, the
+ * application switching its class and the tokens changing under us.
+ */
+.fe-editor {
+    --fe-editor-ink: var(--foreground, #18181b);
+    --fe-editor-muted: var(--muted-foreground, #71717a);
+    --fe-editor-surface: var(--card, #ffffff);
+    --fe-editor-subtle-surface: var(--muted, #f4f4f5);
+    --fe-editor-border: var(--border, #e4e4e7);
+    --fe-editor-subtle-border: var(--border, #ececef);
+    --fe-editor-danger: var(--destructive, #dc2626);
+    --fe-editor-link: var(--primary, #2563eb);
+    --fe-editor-cursor: var(--foreground, #18181b);
+    --fe-editor-selection: var(--accent, #bfdbfe);
+
+    /* Derived in CSS, never in JavaScript: change the ink and the whole stack follows. */
+    --fe-editor-strong-border: color-mix(in srgb, var(--fe-editor-ink) 20%, var(--fe-editor-border));
+    --fe-editor-selection-on-surface: color-mix(in srgb, var(--fe-editor-ink) 10%, var(--fe-editor-selection));
+    --fe-editor-selection-veil: color-mix(in srgb, var(--fe-editor-selection) 45%, transparent);
+
+    --fe-editor-block-radius: 0.75rem;
+    --fe-editor-chip-radius: 0.375rem;
+    --fe-editor-block-padding: 0.75rem;
+    --fe-editor-list-item-padding: 0.125rem;
+    --fe-editor-divider-space: 1rem;
+    --fe-editor-indent-step: 1.5rem;
+
+    --fe-editor-font: inherit;
+    --fe-editor-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /*
+     * Modest on purpose: the ceiling is the title of the page the document sits
+     * in, not the title of the document.
+     */
+    --fe-editor-heading-1-size: 1.05em;
+    --fe-editor-heading-2-size: 0.95em;
+    --fe-editor-heading-3-size: 0.9em;
+    --fe-editor-heading-4-size: 0.85em;
+    --fe-editor-heading-5-size: 0.8em;
+    --fe-editor-heading-6-size: 0.8em;
+
+    --fe-editor-space: 0.25rem;
+    --fe-editor-heading-1-space-above: calc(5 * var(--fe-editor-space));
+    --fe-editor-heading-1-space-below: calc(1.5 * var(--fe-editor-space));
+    --fe-editor-heading-2-space-above: calc(4 * var(--fe-editor-space));
+    --fe-editor-heading-2-space-below: calc(1.5 * var(--fe-editor-space));
+    --fe-editor-heading-3-space-above: calc(3 * var(--fe-editor-space));
+    --fe-editor-heading-3-space-below: calc(1 * var(--fe-editor-space));
+    --fe-editor-heading-4-space-above: calc(2.5 * var(--fe-editor-space));
+    --fe-editor-heading-4-space-below: calc(1 * var(--fe-editor-space));
+    --fe-editor-heading-5-space-above: calc(2 * var(--fe-editor-space));
+    --fe-editor-heading-5-space-below: calc(1 * var(--fe-editor-space));
+    --fe-editor-heading-6-space-above: calc(2 * var(--fe-editor-space));
+    --fe-editor-heading-6-space-below: calc(1 * var(--fe-editor-space));
+
+    --fe-editor-floating-shadow: 0 4px 20px rgb(0 0 0 / 15%);
+
+    color: var(--fe-editor-ink);
+    font-family: var(--fe-editor-font);
+    caret-color: var(--fe-editor-cursor);
+}
+
+/*
+ * Indentation is a margin the extension writes inline, so a block indented is
+ * the same block: the selection, the copy and every extension stay intact.
+ */
+
+.fe-editor :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, ul, ol, table, hr) {
+    margin: 0;
+}
+
+.fe-editor :where(p) + :where(p) {
+    margin-top: calc(2 * var(--fe-editor-space));
+}
+
+.fe-editor h1 {
+    font-size: var(--fe-editor-heading-1-size);
+    margin-top: var(--fe-editor-heading-1-space-above);
+    margin-bottom: var(--fe-editor-heading-1-space-below);
+    font-weight: 700;
+}
+
+.fe-editor h2 {
+    font-size: var(--fe-editor-heading-2-size);
+    margin-top: var(--fe-editor-heading-2-space-above);
+    margin-bottom: var(--fe-editor-heading-2-space-below);
+    font-weight: 700;
+}
+
+.fe-editor h3 {
+    font-size: var(--fe-editor-heading-3-size);
+    margin-top: var(--fe-editor-heading-3-space-above);
+    margin-bottom: var(--fe-editor-heading-3-space-below);
+    font-weight: 600;
+}
+
+.fe-editor h4 {
+    font-size: var(--fe-editor-heading-4-size);
+    margin-top: var(--fe-editor-heading-4-space-above);
+    margin-bottom: var(--fe-editor-heading-4-space-below);
+    font-weight: 600;
+}
+
+.fe-editor h5 {
+    font-size: var(--fe-editor-heading-5-size);
+    margin-top: var(--fe-editor-heading-5-space-above);
+    margin-bottom: var(--fe-editor-heading-5-space-below);
+    font-weight: 600;
+}
+
+.fe-editor h6 {
+    font-size: var(--fe-editor-heading-6-size);
+    margin-top: var(--fe-editor-heading-6-space-above);
+    margin-bottom: var(--fe-editor-heading-6-space-below);
+    font-weight: 600;
+}
+
+.fe-editor blockquote {
+    border-left: 2px solid var(--fe-editor-strong-border);
+    padding-left: var(--fe-editor-block-padding);
+    color: var(--fe-editor-muted);
+}
+
+.fe-editor hr {
+    border: 0;
+    border-top: 1px solid var(--fe-editor-border);
+    margin-block: var(--fe-editor-divider-space);
+}
+
+.fe-editor :where(ul, ol) {
+    padding-left: var(--fe-editor-indent-step);
+}
+
+.fe-editor :where(li) {
+    padding-block: var(--fe-editor-list-item-padding);
+}
+
+.fe-editor ul[data-type='taskList'] {
+    list-style: none;
+    padding-left: 0;
+}
+
+.fe-editor [data-slot='editor-task-item'] {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(2 * var(--fe-editor-space));
+}
+
+.fe-editor [data-slot='editor-task-check'] {
+    display: grid;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.2rem;
+    border: 1px solid var(--fe-editor-strong-border);
+    border-radius: var(--fe-editor-chip-radius);
+    background: var(--fe-editor-surface);
+    color: var(--fe-editor-surface);
+    cursor: pointer;
+    transition: background 120ms ease;
+}
+
+.fe-editor [data-slot='editor-task-item'][data-checked] [data-slot='editor-task-check'] {
+    background: var(--fe-editor-ink);
+    border-color: var(--fe-editor-ink);
+}
+
+.fe-editor [data-slot='editor-task-item'][data-checked] [data-slot='editor-task-body'] {
+    color: var(--fe-editor-muted);
+    text-decoration: line-through;
+}
+
+.fe-editor pre {
+    background: var(--fe-editor-subtle-surface);
+    border-radius: var(--fe-editor-block-radius);
+    padding: var(--fe-editor-block-padding);
+    font-family: var(--fe-editor-mono);
+    overflow-x: auto;
+}
+
+.fe-editor [data-slot='editor-code-block'] {
+    background: var(--fe-editor-subtle-surface);
+    border-radius: var(--fe-editor-block-radius);
+}
+
+.fe-editor [data-slot='editor-code-block-bar'] {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(2 * var(--fe-editor-space));
+    padding: var(--fe-editor-block-padding) var(--fe-editor-block-padding) 0;
+    color: var(--fe-editor-muted);
+}
+
+.fe-editor table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.fe-editor :where(th, td) {
+    border: 1px solid var(--fe-editor-border);
+    padding: calc(2 * var(--fe-editor-space));
+    vertical-align: top;
+}
+
+.fe-editor th {
+    background: var(--fe-editor-subtle-surface);
+    text-align: left;
+}
+
+.fe-editor [data-slot='editor-image-frame'] {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.fe-editor [data-slot='editor-image-frame'] img {
+    display: block;
+    max-width: 100%;
+    border-radius: var(--fe-editor-block-radius);
+}
+
+.fe-editor [data-slot='editor-image-handle'] {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--fe-editor-surface);
+    border-radius: 50%;
+    background: var(--fe-editor-ink);
+    cursor: nwse-resize;
+}
+
+.fe-editor :where(strong, b) {
+    font-weight: 700;
+}
+
+.fe-editor :where(code):not(pre code) {
+    font-family: var(--fe-editor-mono);
+    background: var(--fe-editor-subtle-surface);
+    border-radius: var(--fe-editor-chip-radius);
+    padding: 0 calc(var(--fe-editor-space));
+}
+
+.fe-editor a {
+    color: var(--fe-editor-link);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.fe-editor [data-mention] {
+    color: var(--fe-editor-link);
+    background: color-mix(in srgb, var(--fe-editor-link) 12%, transparent);
+    border-radius: var(--fe-editor-chip-radius);
+    padding: 0 calc(var(--fe-editor-space));
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.fe-editor ::selection {
+    background: var(--fe-editor-selection-veil);
+}
+
+/*
+ * What floats above a document, and where it is styled.
+ *
+ * Two kinds, and they do not live in the same place. What the package mounts
+ * itself sits inside the editor and is styled under `.fe-editor`. What reka-ui
+ * mounts, a menu and a picker, is **teleported to the body**: it is styled by
+ * its own `data-slot`, at the root, and nowhere else would reach it.
+ *
+ * The way reka is meant to be dressed, which is the way shadcn dresses it: the
+ * `data-state`, `data-side` and `data-highlighted` it writes, and the variables
+ * it computes for the space it has, rather than anything measured again here.
+ */
+.fe-editor-floating,
+[data-slot='editor-menu-content'],
+[data-slot='editor-picker-content'] {
+    z-index: 40;
+    background: var(--fe-editor-surface);
+    border: 1px solid var(--fe-editor-subtle-border);
+    border-radius: var(--fe-editor-block-radius);
+    box-shadow: var(--fe-editor-floating-shadow);
+    padding: calc(2 * var(--fe-editor-space));
+    color: var(--fe-editor-ink);
+}
+
+[data-slot='editor-menu-content'],
+[data-slot='editor-picker-content'] {
+    /* The room reka worked out it has, and the corner it grew from. */
+    max-height: var(--reka-dropdown-menu-content-available-height, var(--reka-select-content-available-height, none));
+    min-width: 8rem;
+    overflow-y: auto;
+    transform-origin: var(
+        --reka-dropdown-menu-content-transform-origin,
+        var(--reka-select-content-transform-origin, center)
+    );
+}
+
+[data-slot='editor-picker-content'] {
+    min-width: var(--reka-select-trigger-width, 8rem);
+}
+
+[data-slot='editor-menu-content'] [role='menuitem'],
+[data-slot='editor-picker-content'] [role='option'] {
+    display: flex;
+    align-items: center;
+    gap: calc(2 * var(--fe-editor-space));
+    padding: calc(1.5 * var(--fe-editor-space)) calc(2 * var(--fe-editor-space));
+    border-radius: var(--fe-editor-chip-radius);
+    cursor: pointer;
+    outline: none;
+}
+
+/* What reka says is under the pointer or under the caret, rather than :hover. */
+[data-slot='editor-menu-content'] [data-highlighted],
+[data-slot='editor-picker-content'] [data-highlighted] {
+    background: var(--fe-editor-subtle-surface);
+}
+
+[data-slot='editor-menu-content'] [data-destructive] {
+    color: var(--fe-editor-danger);
+}
+
+[data-slot='editor-menu-content'] [data-disabled],
+[data-slot='editor-picker-content'] [data-disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+[data-slot='editor-menu-content'] [role='separator'] {
+    height: 1px;
+    margin: var(--fe-editor-space) 0;
+    background: var(--fe-editor-border);
+}
+
+/* Told to fade by reka's own state, so a menu closing is a menu closing. */
+[data-slot='editor-menu-content'][data-state],
+[data-slot='editor-picker-content'][data-state] {
+    transition: opacity 120ms ease;
+}
+
+[data-slot='editor-menu-content'][data-state='closed'],
+[data-slot='editor-picker-content'][data-state='closed'] {
+    opacity: 0;
+}
+
+.fe-editor .ProseMirror {
+    outline: none;
+}
+
+.fe-editor .ProseMirror p.is-editor-empty:first-child::before,
+.fe-editor .ProseMirror p.is-empty::before {
+    content: attr(data-placeholder);
+    color: var(--fe-editor-muted);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}

@@ -13,7 +13,6 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: FunctionConstructor;
         default: null;
     };
-    /** What the button is for, never what it looks like. Three are enough. */
     kind: {
         type: StringConstructor;
         default: string;
@@ -27,7 +26,6 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: FunctionConstructor;
         default: null;
     };
-    /** What the button is for, never what it looks like. Three are enough. */
     kind: {
         type: StringConstructor;
         default: string;

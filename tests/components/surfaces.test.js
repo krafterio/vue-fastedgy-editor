@@ -11,6 +11,10 @@ import { tableFeature } from '../../features/table.js';
 
 const editors = [];
 
+/** What a surface renders, which reka teleports out of the wrapper. */
+const inBody = (selector) => document.querySelector(selector);
+const allInBody = (selector) => [...document.querySelectorAll(selector)];
+
 function editorWith(features, content) {
     const editor = new Editor({
         element: document.createElement('div'),
@@ -25,21 +29,36 @@ function editorWith(features, content) {
 
 /** Mounts what a feature floats above its editor, as RichTextEditor will. */
 function mountSurfaces(features, editor) {
-    return mount(
+    const mounted = mount(
         defineComponent({
             setup: () => () =>
                 h(
                     'div',
                     features.surfaces.map((surface) => surface(editor))
                 ),
-        })
+        }),
+        { attachTo: document.body }
     );
+
+    mountedSurfaces.push(mounted);
+
+    return mounted;
 }
 
+const mountedSurfaces = [];
+
 afterEach(() => {
+    while (mountedSurfaces.length > 0) {
+        mountedSurfaces.pop().unmount();
+    }
+
     while (editors.length > 0) {
         editors.pop().destroy();
     }
+
+    // Teleported surfaces outlive their wrapper otherwise, and answer for the
+    // next test.
+    document.body.innerHTML = '';
 });
 
 describe('LinkPopover', () => {
@@ -47,15 +66,15 @@ describe('LinkPopover', () => {
 
     it('opens on the link the caret sits in, and on nothing else', async () => {
         const editor = editorWith(features, '<p>see <a href="https://melimelo.app">this</a></p>');
-        const mounted = mountSurfaces(features, editor);
+        mountSurfaces(features, editor);
 
-        expect(mounted.find('[data-slot="editor-link-popover"]').exists()).toBe(false);
+        expect(inBody('[data-slot="editor-link-popover"]') !== null).toBe(false);
 
         editor.commands.setTextSelection(8);
         await nextTick();
 
-        expect(mounted.find('[data-slot="editor-link-popover"]').exists()).toBe(true);
-        expect(mounted.find('input').element.value).toBe('https://melimelo.app');
+        expect(inBody('[data-slot="editor-link-popover"]') !== null).toBe(true);
+        expect(inBody('[data-slot="editor-link-popover"] input').value).toBe('https://melimelo.app');
     });
 });
 
@@ -98,7 +117,7 @@ describe('MentionSuggestions', () => {
         vi.useFakeTimers();
 
         const editor = editorWith(features, '<p></p>');
-        const mounted = mountSurfaces(features, editor);
+        mountSurfaces(features, editor);
 
         editor.commands.insertContent('@fra');
         await nextTick();
@@ -109,9 +128,9 @@ describe('MentionSuggestions', () => {
         await nextTick();
 
         expect(source.search).toHaveBeenCalledWith('fra');
-        expect(mounted.findAll('[role="option"]')).toHaveLength(2);
+        expect(allInBody('[role="option"]')).toHaveLength(2);
 
-        await mounted.findAll('[role="option"]')[0].trigger('click');
+        allInBody('[role="option"]')[0].click();
         await nextTick();
 
         const written = editor.getJSON().content[0].content[0];

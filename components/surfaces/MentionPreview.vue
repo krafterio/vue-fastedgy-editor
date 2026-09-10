@@ -1,7 +1,8 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-import { anchoredStyle, useAnchoredRect } from '../../composables/anchored.js';
+import { useAnchoredRect } from '../../composables/anchored.js';
+import AnchoredSurface from '../internal/AnchoredSurface.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 
 const props = defineProps({
@@ -92,31 +93,37 @@ function onClick(event) {
     }
 }
 
+// The element the listeners were posted on, kept for the moment they are taken
+// back: an editor being destroyed has no view left to ask.
+let listening = null;
+
 onMounted(() => {
+    listening = props.editor.view.dom;
     props.editor.view.dom.addEventListener('pointerover', onOver);
     props.editor.view.dom.addEventListener('click', onClick);
 });
 
 onBeforeUnmount(() => {
-    props.editor.view.dom.removeEventListener('pointerover', onOver);
-    props.editor.view.dom.removeEventListener('click', onClick);
+    listening?.removeEventListener('pointerover', onOver);
+    listening?.removeEventListener('click', onClick);
 });
 </script>
 
 <template>
-    <div v-if="chip && (loading || preview)" data-slot="editor-mention-preview" :style="anchoredStyle(rect)">
-        <template v-if="loading">
-            <!-- A shape the size of what is coming, so the card does not jump when it lands. -->
-            <component :is="controls.placeholder" :width="180" :height="14" />
-            <component :is="controls.placeholder" :width="120" :height="12" />
-        </template>
+    <AnchoredSurface :open="chip !== null && (loading || preview !== null)" :rect="rect" @close="chip = null">
+        <div class="fe-editor-floating" data-slot="editor-mention-preview">
+            <template v-if="loading">
+                <component :is="controls.placeholder" :width="180" :height="14" />
+                <component :is="controls.placeholder" :width="120" :height="12" />
+            </template>
 
-        <template v-else>
-            <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
+            <template v-else>
+                <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
 
-            <p v-for="(line, at) in preview.lines ?? []" :key="at" data-slot="editor-mention-preview-line">
-                {{ line }}
-            </p>
-        </template>
-    </div>
+                <p v-for="(line, at) in preview.lines ?? []" :key="at" data-slot="editor-mention-preview-line">
+                    {{ line }}
+                </p>
+            </template>
+        </div>
+    </AnchoredSurface>
 </template>

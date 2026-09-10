@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import { anchoredStyle, useAnchoredRect } from '../../composables/anchored.js';
+import { useAnchoredRect } from '../../composables/anchored.js';
+import AnchoredSurface from '../internal/AnchoredSurface.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 import { useRichTextIcons } from '../../composables/icons.js';
 import { safeHref } from '../../markdown/decode.js';
@@ -18,16 +19,19 @@ const link = ref(null);
 const href = ref('');
 const text = ref('');
 
-const { rect, follow } = useAnchoredRect(() => {
-    if (!link.value) {
-        return null;
-    }
+const { rect, follow } = useAnchoredRect(
+    () => {
+        if (!link.value) {
+            return null;
+        }
 
-    const start = props.editor.view.coordsAtPos(link.value.from);
-    const end = props.editor.view.coordsAtPos(link.value.to);
+        const start = props.editor.view.coordsAtPos(link.value.from);
+        const end = props.editor.view.coordsAtPos(link.value.to);
 
-    return new DOMRect(start.left, start.top, Math.max(end.right - start.left, 0), end.bottom - start.top);
-});
+        return new DOMRect(start.left, start.top, Math.max(end.right - start.left, 0), end.bottom - start.top);
+    },
+    { within: () => props.editor.view.dom }
+);
 
 /**
  * The link the caret sits in, or nothing.
@@ -120,15 +124,17 @@ watch(() => props.editor, read);
 </script>
 
 <template>
-    <div v-if="link" data-slot="editor-link-popover" :style="anchoredStyle(rect)">
-        <component :is="controls.field" v-model="href" :label="labels.address" :leading="icon('link')" autofocus />
+    <AnchoredSurface :open="link !== null && rect !== null" :rect="rect" :keeps-focus="false" @close="link = null">
+        <div class="fe-editor-floating" data-slot="editor-link-popover">
+            <component :is="controls.field" v-model="href" :label="labels.address" :leading="icon('link')" autofocus />
 
-        <component :is="controls.field" v-model="text" :label="labels.title" />
+            <component :is="controls.field" v-model="text" :label="labels.title" />
 
-        <component :is="controls.button" :label="labels.apply" kind="primary" :on-tap="apply" />
+            <component :is="controls.button" :label="labels.apply" kind="primary" :on-tap="apply" />
 
-        <component :is="controls.button" :label="labels.open" :on-tap="open" />
+            <component :is="controls.button" :label="labels.open" :on-tap="open" />
 
-        <component :is="controls.button" :label="labels.unlink" kind="quiet" :on-tap="unlink" />
-    </div>
+            <component :is="controls.button" :label="labels.unlink" kind="quiet" :on-tap="unlink" />
+        </div>
+    </AnchoredSurface>
 </template>

@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 
-import { anchoredStyle, useAnchoredRect } from '../../composables/anchored.js';
+import { useAnchoredRect } from '../../composables/anchored.js';
+import AnchoredSurface from '../internal/AnchoredSurface.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 import { suggestionState } from '../../extensions/mention-suggestion.js';
 
@@ -26,15 +27,18 @@ const id = useId();
 let searching = null;
 let asked = 0;
 
-const { rect, follow } = useAnchoredRect(() => {
-    if (!open.value) {
-        return null;
-    }
+const { rect, follow } = useAnchoredRect(
+    () => {
+        if (!open.value) {
+            return null;
+        }
 
-    const { left, top, bottom } = props.editor.view.coordsAtPos(open.value.range.from);
+        const { left, top, bottom } = props.editor.view.coordsAtPos(open.value.range.from);
 
-    return new DOMRect(left, top, 0, bottom - top);
-});
+        return new DOMRect(left, top, 0, bottom - top);
+    },
+    { within: () => props.editor.view.dom }
+);
 
 /** The trigger this editor is showing, if any. */
 function read() {
@@ -134,7 +138,12 @@ const shown = (candidate) =>
         ? { first: candidate.subtitle ?? candidate.label, second: candidate.label }
         : { first: candidate.label, second: candidate.subtitle };
 
+// The element the listeners were posted on, kept for the moment they are taken
+// back: an editor being destroyed has no view left to ask.
+let listening = null;
+
 onMounted(() => {
+    listening = props.editor.view.dom;
     props.editor.on('transaction', read);
     props.editor.view.dom.addEventListener('keydown', onKeyDown, true);
     read();
@@ -142,7 +151,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     props.editor.off('transaction', read);
-    props.editor.view.dom.removeEventListener('keydown', onKeyDown, true);
+    listening?.removeEventListener('keydown', onKeyDown, true);
     clearTimeout(searching);
 });
 
@@ -150,27 +159,23 @@ watch(() => props.editor, read);
 </script>
 
 <template>
-    <div
-        v-if="open && candidates.length > 0"
-        :id="id"
-        data-slot="editor-mention-suggestions"
-        role="listbox"
-        :style="anchoredStyle(rect)"
-    >
-        <component
-            :is="controls.tappable"
-            v-for="(candidate, index) in candidates"
-            :key="candidate.id"
-            role="option"
-            :aria-selected="candidate === active"
-            :active="candidate === active"
-            :on-tap="() => pick(candidate)"
-        >
-            <span data-slot="editor-mention-label">{{ shown(candidate).first }}</span>
+    <AnchoredSurface :open="open !== null && candidates.length > 0" :rect="rect" @close="close">
+        <div :id="id" class="fe-editor-floating" data-slot="editor-mention-suggestions" role="listbox">
+            <component
+                :is="controls.tappable"
+                v-for="candidate in candidates"
+                :key="candidate.id"
+                role="option"
+                :aria-selected="candidate === active"
+                :active="candidate === active"
+                :on-tap="() => pick(candidate)"
+            >
+                <span data-slot="editor-mention-label">{{ shown(candidate).first }}</span>
 
-            <span v-if="shown(candidate).second" data-slot="editor-mention-subtitle">
-                {{ shown(candidate).second }}
-            </span>
-        </component>
-    </div>
+                <span v-if="shown(candidate).second" data-slot="editor-mention-subtitle">
+                    {{ shown(candidate).second }}
+                </span>
+            </component>
+        </div>
+    </AnchoredSurface>
 </template>

@@ -13,12 +13,16 @@ import { provideRichTextIcons, useRichTextIcons } from '../../composables/icons.
 describe('the default bricks', () => {
     it('renders a tappable that says what it does and what it is', async () => {
         const onTap = vi.fn();
-        const tappable = mount(EditorTappable, {
+        const mounted = mount(EditorTappable, {
             props: { onTap, active: true, tooltip: 'Copier' },
             slots: { default: 'x' },
         });
 
+        const tappable = mounted.find('button');
+
+        // What reka's Toggle writes for a screen reader and for a stylesheet.
         expect(tappable.attributes('aria-pressed')).toBe('true');
+        expect(tappable.attributes('data-state')).toBe('on');
         expect(tappable.attributes('aria-label')).toBe('Copier');
 
         await tappable.trigger('click');

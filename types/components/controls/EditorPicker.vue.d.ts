@@ -11,7 +11,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         default: () => never[];
     };
     selected: {
-        type: (StringConstructor | NumberConstructor | null)[];
+        type: (NumberConstructor | StringConstructor | null)[];
         default: null;
     };
     onSelect: {
@@ -29,7 +29,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         default: () => never[];
     };
     selected: {
-        type: (StringConstructor | NumberConstructor | null)[];
+        type: (NumberConstructor | StringConstructor | null)[];
         default: null;
     };
     onSelect: {
@@ -37,9 +37,9 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         default: null;
     };
 }>> & Readonly<{}>, {
+    selected: string | number | null;
     label: string;
     options: unknown[];
-    selected: string | number | null;
     onSelect: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 //# sourceMappingURL=EditorPicker.vue.d.ts.map

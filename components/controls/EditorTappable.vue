@@ -1,4 +1,13 @@
 <script setup>
+import { Toggle } from 'reka-ui';
+
+/**
+ * A button that says what it does and whether it is already done.
+ *
+ * `Toggle` rather than a bare button: it is what carries the pressed state to a
+ * screen reader and writes the `data-state` an application dresses it with, and
+ * both of those are the same work in every application.
+ */
 defineProps({
     onTap: { type: Function, default: null },
     active: { type: Boolean, default: false },
@@ -8,16 +17,14 @@ defineProps({
 </script>
 
 <template>
-    <button
-        type="button"
+    <Toggle
         data-slot="editor-tappable"
-        :data-active="active || undefined"
-        :title="tooltip || undefined"
+        :model-value="active"
         :aria-label="tooltip || undefined"
-        :aria-pressed="active || undefined"
+        :title="tooltip || undefined"
         :style="radius === null ? undefined : { borderRadius: `${radius}px` }"
-        @click="onTap?.()"
+        @update:model-value="onTap?.()"
     >
         <slot />
-    </button>
+    </Toggle>
 </template>

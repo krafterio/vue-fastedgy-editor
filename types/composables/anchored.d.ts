@@ -10,10 +10,17 @@
  * are posted on mounting and taken back on unmounting, and why nothing here is
  * shared: two editors on a page each hold their own.
  *
+ * A surface also **hides when what it hangs on leaves the visible part of the
+ * editor**: an editor capped in height scrolls for itself, and a bubble left
+ * floating over a line that scrolled away points at nothing.
+ *
  * @param {() => DOMRect|null} measure - The rectangle to hang on, or `null` to hide
+ * @param {{ within?: () => Element|null }} [options] - What the anchor has to stay inside
  * @returns {{ rect: import('vue').Ref<DOMRect|null>, follow: () => void }}
  */
-export function useAnchoredRect(measure: () => DOMRect | null): {
+export function useAnchoredRect(measure: () => DOMRect | null, options?: {
+    within?: () => Element | null;
+}): {
     rect: import("vue").Ref<DOMRect | null>;
     follow: () => void;
 };

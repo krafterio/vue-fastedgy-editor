@@ -1,3 +1,5 @@
+export { default as RichTextEditor } from "./components/RichTextEditor.vue";
+export { default as RichTextViewer } from "./components/RichTextViewer.vue";
 export * from "./json/codec.js";
 export * from "./markdown/codec.js";
 export * from "./markdown/decode.js";
@@ -5,6 +7,9 @@ export * from "./markdown/encode.js";
 export * from "./markdown/escape.js";
 export * from "./markdown/marks.js";
 export * from "./markdown/nesting.js";
+export * from "./render/blocks.js";
+export * from "./render/highlight.js";
+export * from "./menu/core.js";
 export * from "./features/registry.js";
 export * from "./features/code-block.js";
 export * from "./features/image.js";

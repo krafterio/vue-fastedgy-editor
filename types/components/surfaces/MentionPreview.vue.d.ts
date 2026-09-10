@@ -31,7 +31,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         default: null;
     };
 }>> & Readonly<{}>, {
-    sources: unknown[];
     open: Function;
+    sources: unknown[];
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 //# sourceMappingURL=MentionPreview.vue.d.ts.map

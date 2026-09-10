@@ -38,14 +38,19 @@ function clear(event) {
     }
 }
 
+// The element the listeners were posted on, kept for the moment they are taken
+// back: an editor being destroyed has no view left to ask.
+let listening = null;
+
 onMounted(() => {
+    listening = props.editor.view.dom;
     props.editor.view.dom.addEventListener('pointermove', follow);
     props.editor.view.dom.addEventListener('pointerleave', clear);
 });
 
 onBeforeUnmount(() => {
-    props.editor.view.dom.removeEventListener('pointermove', follow);
-    props.editor.view.dom.removeEventListener('pointerleave', clear);
+    listening?.removeEventListener('pointermove', follow);
+    listening?.removeEventListener('pointerleave', clear);
 });
 
 const columns = computed(() => {

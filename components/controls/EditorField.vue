@@ -1,4 +1,5 @@
 <script setup>
+import { Label } from 'reka-ui';
 import { useId } from 'vue';
 
 defineProps({
@@ -16,7 +17,8 @@ const id = useId();
 
 <template>
     <div data-slot="editor-field">
-        <label v-if="label" :for="id">{{ label }}</label>
+        <!-- reka's Label, which puts the caret in the field a click lands on. -->
+        <Label v-if="label" :for="id">{{ label }}</Label>
 
         <component :is="leading" v-if="leading" data-slot="editor-field-leading" />
 
