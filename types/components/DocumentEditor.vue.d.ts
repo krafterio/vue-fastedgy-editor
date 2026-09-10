@@ -25,7 +25,6 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             holdsEnter(state: any): boolean;
         };
     };
-    /** How the field stores what is written: markdown by default. */
     codec: {
         type: ObjectConstructor;
         default: null;
@@ -34,11 +33,11 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: BooleanConstructor;
         default: boolean;
     };
-    /** Longueurs CSS, or a number of pixels. */
-    maxWidth: {
-        type: (NumberConstructor | StringConstructor)[];
-        default: null;
-    };
+    /**
+     * The three modes of [00 §3.1], carried by the page rather than by the
+     * field: what scrolls on a page is the page, and a field that scrolled
+     * inside a scrolling page would give two bars for one document.
+     */
     minHeight: {
         type: (NumberConstructor | StringConstructor)[];
         default: null;
@@ -47,8 +46,24 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
-    /** Takes the height of its container, which has to be a bounded one. */
     fill: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /** The stored path of the cover, and how a new one is chosen and kept. */
+    cover: {
+        type: StringConstructor;
+        default: string;
+    };
+    pickFile: {
+        type: FunctionConstructor;
+        default: null;
+    };
+    storeCover: {
+        type: FunctionConstructor;
+        default: null;
+    };
+    slashMenu: {
         type: BooleanConstructor;
         default: boolean;
     };
@@ -60,20 +75,9 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: StringConstructor;
         default: string;
     };
-    /** A field emptied of its words goes back to a paragraph. */
-    resetWhenEmpty: {
-        type: BooleanConstructor;
-        default: boolean;
-    };
-    /** Words the surfaces say, by name. Nothing is shipped. */
     labels: {
         type: ObjectConstructor;
         default: () => {};
-    };
-    /** `false` leaves the slash to be typed, and offers nothing. */
-    slashMenu: {
-        type: BooleanConstructor;
-        default: boolean;
     };
     modelValue: {
         type: import("vue").PropType<string>;
@@ -101,7 +105,6 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             holdsEnter(state: any): boolean;
         };
     };
-    /** How the field stores what is written: markdown by default. */
     codec: {
         type: ObjectConstructor;
         default: null;
@@ -110,11 +113,11 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: BooleanConstructor;
         default: boolean;
     };
-    /** Longueurs CSS, or a number of pixels. */
-    maxWidth: {
-        type: (NumberConstructor | StringConstructor)[];
-        default: null;
-    };
+    /**
+     * The three modes of [00 §3.1], carried by the page rather than by the
+     * field: what scrolls on a page is the page, and a field that scrolled
+     * inside a scrolling page would give two bars for one document.
+     */
     minHeight: {
         type: (NumberConstructor | StringConstructor)[];
         default: null;
@@ -123,8 +126,24 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
-    /** Takes the height of its container, which has to be a bounded one. */
     fill: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /** The stored path of the cover, and how a new one is chosen and kept. */
+    cover: {
+        type: StringConstructor;
+        default: string;
+    };
+    pickFile: {
+        type: FunctionConstructor;
+        default: null;
+    };
+    storeCover: {
+        type: FunctionConstructor;
+        default: null;
+    };
+    slashMenu: {
         type: BooleanConstructor;
         default: boolean;
     };
@@ -136,20 +155,9 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: StringConstructor;
         default: string;
     };
-    /** A field emptied of its words goes back to a paragraph. */
-    resetWhenEmpty: {
-        type: BooleanConstructor;
-        default: boolean;
-    };
-    /** Words the surfaces say, by name. Nothing is shipped. */
     labels: {
         type: ObjectConstructor;
         default: () => {};
-    };
-    /** `false` leaves the slash to be typed, and offers nothing. */
-    slashMenu: {
-        type: BooleanConstructor;
-        default: boolean;
     };
     modelValue: {
         type: import("vue").PropType<string>;
@@ -159,24 +167,23 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
 }>, {
     fill: boolean;
     editable: boolean;
+    pickFile: Function;
     labels: Record<string, any>;
     features: Record<string, any>;
     codec: Record<string, any>;
-    maxWidth: string | number;
     minHeight: string | number;
     maxHeight: string | number;
     emptyPlaceholder: string;
     hintPlaceholder: string;
-    resetWhenEmpty: boolean;
     slashMenu: boolean;
+    cover: string;
+    storeCover: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 type __VLS_Slots = {
+    cover?: ((props: {}) => any) | undefined;
+} & {
     header?: ((props: {}) => any) | undefined;
-} & {
-    leading?: ((props: {}) => any) | undefined;
-} & {
-    trailing?: ((props: {}) => any) | undefined;
 } & {
     footer?: ((props: {}) => any) | undefined;
 };
-//# sourceMappingURL=RichTextEditor.vue.d.ts.map
+//# sourceMappingURL=DocumentEditor.vue.d.ts.map

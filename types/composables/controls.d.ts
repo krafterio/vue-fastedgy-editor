@@ -145,9 +145,9 @@ export const defaultRichTextControls: Readonly<{
             default: null;
         };
     }>> & Readonly<{}>, {
-        selected: string | number | null;
         label: string;
         options: unknown[];
+        selected: string | number | null;
         onSelect: Function;
     }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
     button: {

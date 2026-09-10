@@ -1,3 +1,5 @@
+export { default as DocumentEditor } from "./components/DocumentEditor.vue";
+export { default as DocumentViewer } from "./components/DocumentViewer.vue";
 export { default as RichTextEditor } from "./components/RichTextEditor.vue";
 export { default as RichTextViewer } from "./components/RichTextViewer.vue";
 export * from "./json/codec.js";
@@ -19,6 +21,7 @@ export * from "./features/plus-underline.js";
 export * from "./features/table.js";
 export * from "./features/todo-list.js";
 export * from "./composables/anchored.js";
+export * from "./composables/editor.js";
 export * from "./composables/controls.js";
 export * from "./composables/icons.js";
 export * from "./composables/pictures.js";
@@ -27,6 +30,7 @@ export * from "./extensions/image.js";
 export * from "./extensions/indent.js";
 export * from "./extensions/mention.js";
 export * from "./extensions/mention-suggestion.js";
+export * from "./extensions/range-drag.js";
 export * from "./extensions/table-duplication.js";
 export * from "./extensions/schema.js";
 //# sourceMappingURL=index.d.ts.map

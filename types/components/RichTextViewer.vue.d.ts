@@ -69,8 +69,8 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
 }>> & Readonly<{
     onMention?: ((...args: any[]) => any) | undefined;
 }>, {
-    value: string | Record<string, any>;
     fill: boolean;
+    value: string | Record<string, any>;
     codec: Record<string, any>;
     maxWidth: string | number;
     maxHeight: string | number;

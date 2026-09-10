@@ -1,11 +1,8 @@
 <script setup>
-import Placeholder from '@tiptap/extension-placeholder';
-import { EditorContent, useEditor } from '@tiptap/vue-3';
+import { EditorContent } from '@tiptap/vue-3';
 import { computed, ref, watch } from 'vue';
 
-import { useImageCarrier } from '../composables/pictures.js';
-import { richTextClipboard } from '../extensions/clipboard.js';
-import { coreExtensions } from '../extensions/schema.js';
+import { useRichTextEditor } from '../composables/editor.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
 import { actionsOf, menuItemsOf } from '../menu/core.js';
@@ -36,6 +33,9 @@ const props = defineProps({
 
     /** Words the surfaces say, by name. Nothing is shipped. */
     labels: { type: Object, default: () => ({}) },
+
+    /** `false` leaves the slash to be typed, and offers nothing. */
+    slashMenu: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['update:modelValue', 'submit', 'ready']);
@@ -43,25 +43,17 @@ const emit = defineEmits(['update:modelValue', 'submit', 'ready']);
 const model = defineModel({ type: String, default: '' });
 
 const codec = computed(() => props.codec ?? createMarkdownCodec(props.features));
-const carrier = useImageCarrier();
 const menu = ref(null);
 
-const editor = useEditor({
+const editor = useRichTextEditor({
+    features: props.features,
+    codec: codec.value,
+    content: model.value,
     editable: props.editable,
-    content: codec.value.decode(model.value),
-    extensions: [
-        ...coreExtensions(),
-        ...props.features.extensions,
-        Placeholder.configure({
-            placeholder: ({ editor: current, node }) =>
-                current.isEmpty ? props.emptyPlaceholder : node.type.name === 'paragraph' ? props.hintPlaceholder : '',
-        }),
-        richTextClipboard({ codec: codec.value, ...carrier }),
-    ],
+    emptyPlaceholder: props.emptyPlaceholder,
+    hintPlaceholder: props.hintPlaceholder,
 
-    onUpdate: ({ editor: current }) => {
-        const written = codec.value.encode(current.getJSON());
-
+    onUpdate: (written, current) => {
         if (written !== model.value) {
             model.value = written;
         }
@@ -71,7 +63,7 @@ const editor = useEditor({
         }
     },
 
-    onCreate: ({ editor: current }) => emit('ready', current),
+    onCreate: (current) => emit('ready', current),
 });
 
 // What the field is given from the outside, when it is not what it holds.
@@ -147,7 +139,7 @@ function onKeyDown(event) {
         <template v-if="editor">
             <FormatBubble :editor="editor" :actions="actions" :labels="labels" />
 
-            <SlashMenu ref="menu" :editor="editor" :items="items" :labels="labels" />
+            <SlashMenu v-if="slashMenu" ref="menu" :editor="editor" :items="items" :labels="labels" />
 
             <component :is="() => surface(editor)" v-for="(surface, at) in features.surfaces" :key="at" />
         </template>

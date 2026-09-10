@@ -53,7 +53,8 @@ export function coreExtensions(options = {}) {
         Underline,
         Code,
         Link.configure({ openOnClick: false, autolink: false }),
-        Dropcursor,
+        // The line drawn between two blocks, in the colour the theme gives it.
+        Dropcursor.configure({ color: 'var(--fe-editor-drop-indicator)', width: 2 }),
         Gapcursor,
         Indent,
         ...(options.history === false ? [] : [History]),

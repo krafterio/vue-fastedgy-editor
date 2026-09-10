@@ -60,10 +60,137 @@
     --fe-editor-heading-6-space-below: calc(1 * var(--fe-editor-space));
 
     --fe-editor-floating-shadow: 0 4px 20px rgb(0 0 0 / 15%);
+    --fe-editor-drop-indicator: var(--fe-editor-muted);
 
     color: var(--fe-editor-ink);
     font-family: var(--fe-editor-font);
     caret-color: var(--fe-editor-cursor);
+}
+
+/*
+ * The column a page reads at, which is a decision about content and not about
+ * the palette: its own object, as it is on the mobile side.
+ */
+.fe-document {
+    --fe-doc-content-width: 720px;
+    --fe-doc-padding-x: 56px;
+    --fe-doc-gutter-width: 42px;
+}
+
+/*
+ * The page carries the three height modes, and writes them itself: nothing is
+ * set here, or a page in `auto` would scroll for nothing and clip its own
+ * bubble.
+ */
+.fe-document [data-slot='document-scroll'] {
+    position: relative;
+}
+
+.fe-document [data-slot='document-column'] {
+    width: 100%;
+    max-width: calc(var(--fe-doc-content-width) + 2 * var(--fe-doc-padding-x));
+    margin: 0 auto;
+    padding: 0 var(--fe-doc-padding-x);
+}
+
+/*
+ * The gutter hangs in the margin, and is bounded by it: wider than the margin it
+ * hangs in, it pushes every block out of the column the header and the footer
+ * are aligned on. A narrow page simply gets a narrow gutter.
+ */
+.fe-document [data-slot='document-blocks'] {
+    padding-left: min(var(--fe-doc-gutter-width), var(--fe-doc-padding-x));
+    margin-left: calc(-1 * min(var(--fe-doc-gutter-width), var(--fe-doc-padding-x)));
+}
+
+.fe-document [data-slot='document-cover'] {
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+    background: var(--fe-editor-subtle-surface);
+}
+
+.fe-document [data-slot='document-cover'] img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.fe-document [data-slot='document-cover-actions'] {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    justify-content: center;
+    gap: calc(2 * var(--fe-editor-space));
+    padding: calc(2 * var(--fe-editor-space));
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.fe-document [data-slot='document-cover']:hover [data-slot='document-cover-actions'] {
+    opacity: 1;
+}
+
+.fe-document [data-slot='document-cover-progress'] {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 3px;
+    background: var(--fe-editor-subtle-surface);
+}
+
+.fe-document [data-slot='document-cover-progress-bar'] {
+    display: block;
+    height: 100%;
+    background: var(--fe-editor-ink);
+    transition: width 120ms linear;
+}
+
+.fe-document [data-slot='document-gutter'] {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--fe-editor-space));
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.fe-document [data-slot='document-gutter'][data-shown] {
+    opacity: 1;
+}
+
+/*
+ * Nothing to hang it in below this width, and over the text it would blind it.
+ *
+ * Taken out of sight rather than out of the page: the block menu stays reachable
+ * from the keyboard, and shows itself the moment it takes the focus.
+ */
+@container (max-width: 640px) {
+    .fe-document [data-slot='document-gutter'] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .fe-document [data-slot='document-gutter']:focus-within {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip-path: none;
+        opacity: 1;
+    }
+}
+
+/*
+ * Where a dragged block will land: the line says the place, and its offset says
+ * the depth. Without the offset one cannot tell which parent it is joining.
+ */
+.fe-editor .ProseMirror-dropcursor {
+    background: var(--fe-editor-drop-indicator) !important;
+    margin-left: calc(var(--fe-drop-indent, 0) * var(--fe-editor-indent-step));
 }
 
 /*

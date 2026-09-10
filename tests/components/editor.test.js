@@ -168,6 +168,19 @@ describe('the "/" menu', () => {
     });
 });
 
+describe('slashMenu: false', () => {
+    it('leaves the slash to be typed, and offers nothing', async () => {
+        const mounted = await editorOf({ slashMenu: false });
+        const editor = mounted.findComponent({ name: 'EditorContent' }).props('editor');
+
+        editor.commands.insertContent('/');
+        await nextTick();
+
+        expect(allInBody('[data-slot="editor-slash-menu"]')).toHaveLength(0);
+        expect(editor.getText()).toBe('/');
+    });
+});
+
 describe('the format bubble', () => {
     it('appears where its own editor has the focus and something selected', async () => {
         const first = await editorOf({ modelValue: 'du texte' });
