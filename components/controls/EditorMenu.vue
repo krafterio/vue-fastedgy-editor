@@ -13,7 +13,13 @@ import {
  * closing on Escape and on a click outside, handing the focus back where it came
  * from, and saying what it is to a screen reader. What it looks like is not, and
  * none of it is here.
+ *
+ * The root is `DropdownMenuRoot`, which renders no element at all: left to fall
+ * through, a class or a position written by whoever mounts the menu would land
+ * nowhere. They go on the trigger, which is the part that is actually there.
  */
+defineOptions({ inheritAttrs: false });
+
 defineProps({
     /** `{ label, icon, destructive, separated, onTap }`, in the order they read. */
     actions: { type: Array, default: () => [] },
@@ -24,7 +30,7 @@ defineProps({
 
 <template>
     <DropdownMenuRoot>
-        <DropdownMenuTrigger data-slot="editor-menu" :aria-label="label || undefined">
+        <DropdownMenuTrigger v-bind="$attrs" data-slot="editor-menu" :aria-label="label || undefined">
             <slot />
         </DropdownMenuTrigger>
 

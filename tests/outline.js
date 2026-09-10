@@ -41,6 +41,57 @@ function cellsOf(table) {
     );
 }
 
+/**
+ * What a block says, run by run.
+ *
+ * A line cut is a `\n` inside the run it cuts, which is what the other side
+ * holds: written as a node of its own it would be a third run where the corpus
+ * describes one, and the outline would stop being something two implementations
+ * can compare.
+ */
+function runsOf(body) {
+    const runs = [];
+
+    for (const run of body?.content ?? []) {
+        const marks = MARK_ORDER.filter((mark) => (run.marks ?? []).some((own) => own.type === mark));
+        const href = (run.marks ?? []).find((mark) => mark.type === 'link')?.attrs?.href ?? null;
+        const last = runs.at(-1);
+
+        if (run.type === 'hardBreak') {
+            if (last) {
+                last.t += '\n';
+            }
+
+            continue;
+        }
+
+        if (run.type !== 'text' && run.type !== 'mention') {
+            continue;
+        }
+
+        // A mention is drawn from its label, and the corpus says where it points
+        // rather than how it is stored.
+        const said = run.type === 'mention' ? (run.attrs?.label ?? '') : run.text;
+
+        if (run.type === 'text' && last && !last.mention && last.href === href && sameMarks(last.m, marks)) {
+            last.t += said;
+
+            continue;
+        }
+
+        runs.push({
+            t: said,
+            m: marks,
+            href,
+            ...(run.type === 'mention' ? { mention: { model: run.attrs?.model, id: run.attrs?.id } } : {}),
+        });
+    }
+
+    return runs;
+}
+
+const sameMarks = (one, other) => one.length === other.length && one.every((mark, at) => mark === other[at]);
+
 /** The width of each column, as the first row of a table carries them. */
 function widthsOf(table) {
     const row = (table.content ?? [])[0];
@@ -74,16 +125,7 @@ export function outlineOf(doc) {
                 ...(node.attrs?.height != null ? { height: node.attrs.height } : {}),
                 ...(isTable ? { widths: widthsOf(node) } : {}),
             },
-            runs: (body?.content ?? [])
-                .filter((run) => run.type === 'text' || run.type === 'mention')
-                .map((run) => ({
-                    // A mention is drawn from its label, and the corpus says
-                    // where it points rather than how it is stored.
-                    t: run.type === 'mention' ? (run.attrs?.label ?? '') : run.text,
-                    m: MARK_ORDER.filter((mark) => (run.marks ?? []).some((own) => own.type === mark)),
-                    href: (run.marks ?? []).find((mark) => mark.type === 'link')?.attrs?.href ?? null,
-                    ...(run.type === 'mention' ? { mention: { model: run.attrs?.model, id: run.attrs?.id } } : {}),
-                })),
+            runs: runsOf(body),
         };
     });
 }

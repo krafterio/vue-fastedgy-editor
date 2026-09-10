@@ -27,24 +27,49 @@ export function flatten(doc) {
     const blocks = [];
 
     for (const node of doc?.content ?? []) {
-        if (!LIST_TYPES.has(node.type)) {
-            blocks.push({ node, indent: node.attrs?.indent ?? 0, number: null });
-
-            continue;
-        }
-
-        const start = node.type === 'orderedList' ? (node.attrs?.start ?? 1) : null;
-
-        (node.content ?? []).forEach((item, at) => {
-            blocks.push({
-                node: item,
-                indent: item.attrs?.indent ?? node.attrs?.indent ?? 0,
-                number: start === null ? null : start + at,
-            });
-        });
+        laidFlat(node, node.attrs?.indent ?? 0, blocks, false);
     }
 
     return blocks;
+}
+
+/**
+ * One node laid out flat, and everything a list holds under it.
+ *
+ * A list may hold another inside one of its items: that is how ProseMirror
+ * nests, and `Tab` on an item does it. The format says depth with an attribute
+ * instead, so a nested list is read as items written one level deeper — read
+ * rather than refused, because the alternative is the encoder walking past
+ * somebody's sub-items and storing a note without them.
+ *
+ * [nested] is what settles a disagreement: an item moved into a list by `Tab`
+ * still carries the depth it had before, so under a nest the nesting is the
+ * truth and the attribute is stale. At the top it is the other way round, the
+ * attribute being how the format says depth at all.
+ */
+function laidFlat(node, indent, blocks, nested) {
+    if (!LIST_TYPES.has(node.type)) {
+        blocks.push({ node, indent, number: null });
+
+        return;
+    }
+
+    const start = node.type === 'orderedList' ? (node.attrs?.start ?? 1) : null;
+
+    (node.content ?? []).forEach((item, at) => {
+        const depth = nested ? indent : (item.attrs?.indent ?? indent);
+        const [body, ...under] = item.content ?? [];
+
+        blocks.push({
+            node: body === undefined ? item : { ...item, content: [body] },
+            indent: depth,
+            number: start === null ? null : start + at,
+        });
+
+        for (const under_ of under) {
+            laidFlat(under_, depth + 1, blocks, true);
+        }
+    });
 }
 
 /** The blocks that hold words, and are therefore blank when they hold none. */
@@ -295,6 +320,31 @@ function written(node, context, decodeChunk) {
     return markdown;
 }
 
+/** The blocks a caret has nowhere to go after: the last line has to be made. */
+const HOLDS_NO_CARET = new Set(['image', 'table', 'horizontalRule']);
+
+/**
+ * The document without the line a picture at its end forced somebody to make.
+ *
+ * A picture, a table or a rule at the end of a note leaves nowhere to put the
+ * caret, so getting out of it means making a paragraph after it — and that
+ * paragraph, in which nobody has written a word yet, would be stored as an empty
+ * line. Every note would gain one the moment somebody stepped out of a picture.
+ *
+ * Only there: an empty line somebody left after a sentence was left on purpose,
+ * and stays.
+ */
+function withoutTrailingBlank(doc) {
+    const blocks = doc.content ?? [];
+    const last = blocks.at(-1);
+
+    if (blocks.length < 2 || last?.type !== 'paragraph' || (last.content ?? []).length > 0) {
+        return doc;
+    }
+
+    return HOLDS_NO_CARET.has(blocks.at(-2)?.type) ? { ...doc, content: blocks.slice(0, -1) } : doc;
+}
+
 /**
  * A document written to markdown.
  *
@@ -307,7 +357,8 @@ export function encodeDocument(doc, { features, decodeChunk }) {
         return '';
     }
 
-    const shaped = features?.before ? features.before(spaceOutsideMarks(doc)) : spaceOutsideMarks(doc);
+    const spaced = withoutTrailingBlank(spaceOutsideMarks(doc));
+    const shaped = features?.before ? features.before(spaced) : spaced;
 
     return joinChunks(
         flatten(shaped).map(({ node, indent, number }) => ({

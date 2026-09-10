@@ -1,3 +1,32 @@
+import { config } from '@vue/test-utils';
+import { fetcherSrc } from 'vue-fastedgy';
+
+/**
+ * The directive that carries the token onto a stored picture.
+ *
+ * `createFetcher` registers it wherever the package really runs, and nothing
+ * here installs that plugin: Vue would be asked for a directive nobody
+ * registered and warn at every picture a test draws.
+ */
+config.global.directives = { 'fetcher-src': fetcherSrc };
+
+/**
+ * jsdom draws nothing, so nothing ever comes into sight.
+ *
+ * A picture is read lazily, which means read once it is looked at, and what
+ * says so is an observer jsdom does not have. One that watches and never fires
+ * is what "nothing was ever looked at" means: the picture keeps the address it
+ * was given, which is the one a test reads.
+ */
+globalThis.IntersectionObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+        return [];
+    }
+};
+
 /**
  * jsdom does no layout, and ProseMirror measures.
  *

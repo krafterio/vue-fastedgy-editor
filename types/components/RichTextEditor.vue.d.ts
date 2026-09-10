@@ -16,7 +16,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly menuItems: any[];
             readonly replacedMenuItems: Set<string>;
             readonly actions: any[];
-            readonly surfaces: ((editor: any) => any)[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
@@ -72,6 +72,15 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     };
     /** `false` leaves the slash to be typed, and offers nothing. */
     slashMenu: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /**
+     * `false` where the application docks a `RichTextActionBar` of its own: two
+     * strips offering the same thing is one too many, and the bubble is the one
+     * a thumb cannot reach.
+     */
+    formatBubble: {
         type: BooleanConstructor;
         default: boolean;
     };
@@ -92,7 +101,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly menuItems: any[];
             readonly replacedMenuItems: Set<string>;
             readonly actions: any[];
-            readonly surfaces: ((editor: any) => any)[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
@@ -148,6 +157,15 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     };
     /** `false` leaves the slash to be typed, and offers nothing. */
     slashMenu: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /**
+     * `false` where the application docks a `RichTextActionBar` of its own: two
+     * strips offering the same thing is one too many, and the bubble is the one
+     * a thumb cannot reach.
+     */
+    formatBubble: {
         type: BooleanConstructor;
         default: boolean;
     };
@@ -169,6 +187,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     hintPlaceholder: string;
     resetWhenEmpty: boolean;
     slashMenu: boolean;
+    formatBubble: boolean;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 type __VLS_Slots = {
     header?: ((props: {}) => any) | undefined;

@@ -1,13 +1,15 @@
 <script setup>
 import { EditorContent } from '@tiptap/vue-3';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
+import { useFileDropZone } from 'vue-fastedgy';
 
-import { useRichTextEditor } from '../composables/editor.js';
+import { useRichTextEditor, writeInto } from '../composables/editor.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
 import { actionsOf, menuItemsOf } from '../menu/core.js';
 import FormatBubble from './surfaces/FormatBubble.vue';
 import SlashMenu from './surfaces/SlashMenu.vue';
+import { richTextLabels } from '../labels.js';
 
 const props = defineProps({
     features: { type: Object, default: () => createFeatures([]) },
@@ -36,6 +38,13 @@ const props = defineProps({
 
     /** `false` leaves the slash to be typed, and offers nothing. */
     slashMenu: { type: Boolean, default: true },
+
+    /**
+     * `false` where the application docks a `RichTextActionBar` of its own: two
+     * strips offering the same thing is one too many, and the bubble is the one
+     * a thumb cannot reach.
+     */
+    formatBubble: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['update:modelValue', 'submit', 'ready']);
@@ -71,7 +80,7 @@ watch(model, (written) => {
     const current = editor.value;
 
     if (current && written !== codec.value.encode(current.getJSON())) {
-        current.commands.setContent(codec.value.decode(written), { emitUpdate: false });
+        writeInto(current, codec.value.decode(written));
     }
 });
 
@@ -93,7 +102,24 @@ const style = computed(() => ({
     overflowY: props.fill || props.maxHeight ? 'auto' : undefined,
 }));
 
+/**
+ * A picture dragged anywhere on the page is one this would take.
+ *
+ * Said rather than done: the drop itself is still the image feature's, through
+ * ProseMirror, which is what places the picture where the pointer let go. This
+ * only tells the application that the place exists, so it can dim everything
+ * that would swallow the file for nothing — a text field, the page itself.
+ */
+const body = useTemplateRef('body');
+
+const { active: offered, over } = useFileDropZone(body, {
+    accept: (kinds) => kinds.length > 0 && kinds.every((kind) => kind.startsWith('image/')),
+});
+
 const actions = computed(() => actionsOf(props.features));
+
+/** What the package says, under what the application renamed. */
+const said = computed(() => richTextLabels(props.labels));
 const items = computed(() => menuItemsOf(props.features));
 
 /**
@@ -120,7 +146,7 @@ function onKeyDown(event) {
     <div class="fe-editor" data-slot="editor" :data-fill="fill || undefined">
         <slot name="header" />
 
-        <div data-slot="editor-body">
+        <div ref="body" data-slot="editor-body" :data-offered="offered || undefined" :data-over="over || undefined">
             <slot name="leading" />
 
             <EditorContent
@@ -137,11 +163,11 @@ function onKeyDown(event) {
         <slot name="footer" />
 
         <template v-if="editor">
-            <FormatBubble :editor="editor" :actions="actions" :labels="labels" />
+            <FormatBubble v-if="formatBubble" :editor="editor" :actions="actions" :labels="said" />
 
-            <SlashMenu v-if="slashMenu" ref="menu" :editor="editor" :items="items" :labels="labels" />
+            <SlashMenu v-if="slashMenu" ref="menu" :editor="editor" :items="items" :labels="said" />
 
-            <component :is="() => surface(editor)" v-for="(surface, at) in features.surfaces" :key="at" />
+            <component :is="() => surface(editor, said)" v-for="(surface, at) in features.surfaces" :key="at" />
         </template>
     </div>
 </template>

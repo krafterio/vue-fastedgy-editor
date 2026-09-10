@@ -14,6 +14,22 @@ export const INDENTABLE_TYPES = [
 ];
 
 /**
+ * Which of [blocks] holds [position], the blocks being `{ pos, node }` in order.
+ *
+ * Half open on purpose: a block ends exactly where the next one starts, so a
+ * position on that seam belongs to the one that starts there. Read the other way
+ * round, taking hold of a block by its first position takes hold of the one
+ * above it — which is what a drag from the handle does every time.
+ *
+ * @param {Array<{ pos: number, node: { nodeSize: number } }>} blocks
+ * @param {number} position
+ * @returns {number} - Its index, or `-1`
+ */
+export function blockAt(blocks, position) {
+    return blocks.findIndex((block) => position >= block.pos && position < block.pos + block.node.nodeSize);
+}
+
+/**
  * The blocks a move takes with it: the one at [index] and the contiguous run of
  * the ones after it that are written deeper.
  *
@@ -117,9 +133,9 @@ export const Indent = Extension.create({
 function applyIndent({ state, tr, dispatch }, delta) {
     const blocks = [];
 
-    state.doc.forEach((node, offset) => blocks.push({ node, offset, indent: node.attrs?.indent ?? 0 }));
+    state.doc.forEach((node, offset) => blocks.push({ node, pos: offset, offset, indent: node.attrs?.indent ?? 0 }));
 
-    const index = blocks.findLastIndex((block) => block.offset <= state.selection.from - 1);
+    const index = blockAt(blocks, state.selection.from);
 
     if (index < 0 || blocks[index].node.attrs?.indent === undefined) {
         return false;

@@ -23,6 +23,46 @@ const documentOf = (src, attrs = {}) => ({
 });
 
 describe('ImageView', () => {
+    it('keeps the press off the document when the picture is clicked', async () => {
+        // A paragraph before it, or the picture is the whole document and the
+        // caret has nowhere else to be.
+        const mounted = mountEditor({
+            type: 'doc',
+            content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'du texte' }] },
+                { type: 'image', attrs: { src: 'https://melimelo.app/a.png' } },
+            ],
+        });
+
+        await nextTick();
+        await nextTick();
+
+        const pressed = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+
+        mounted.get('[data-slot="editor-image-frame"] img').element.dispatchEvent(pressed);
+
+        // Left to reach ProseMirror, the press takes the picture as a whole and
+        // the browser scrolls its own selection into view.
+        expect(pressed.defaultPrevented).toBe(true);
+        expect(mounted.get('[data-slot="editor-image"]').attributes('data-selected')).toBeUndefined();
+    });
+
+    it('takes hold of the picture when the handle is taken hold of', async () => {
+        const mounted = mountEditor(documentOf('https://melimelo.app/a.png'));
+
+        await nextTick();
+        await nextTick();
+
+        const handle = mounted.get('[data-slot="editor-image-handle"]');
+
+        handle.element.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+        await nextTick();
+
+        // Selected as a whole, which is what makes backspace, copy and cut mean
+        // the picture rather than the letter the caret was next to.
+        expect(mounted.get('[data-slot="editor-image"]').attributes('data-selected')).toBe('true');
+    });
+
     it('draws a picture at the size it was given', async () => {
         const mounted = mountEditor(documentOf('https://melimelo.app/a.png', { width: 420, height: 280 }));
 

@@ -18,6 +18,7 @@ import Strike from '@tiptap/extension-strike';
 import Text from '@tiptap/extension-text';
 import Underline from '@tiptap/extension-underline';
 
+import { GapStart } from './gap-start.js';
 import { Indent } from './indent.js';
 
 /**
@@ -53,9 +54,18 @@ export function coreExtensions(options = {}) {
         Underline,
         Code,
         Link.configure({ openOnClick: false, autolink: false }),
-        // The line drawn between two blocks, in the colour the theme gives it.
-        Dropcursor.configure({ color: 'var(--fe-editor-drop-indicator)', width: 2 }),
+        /*
+         * The line drawn between two blocks.
+         *
+         * Dressed by a class of its own rather than by a colour written inline:
+         * ProseMirror hangs the line on the editor's `offsetParent`, which is
+         * somewhere in the application's layout and not under `.fe-editor`, so a
+         * colour read from a variable of the theme resolves to nothing there and
+         * the line comes out invisible.
+         */
+        Dropcursor.configure({ color: '', width: 2, class: 'fe-editor-drop-cursor' }),
         Gapcursor,
+        GapStart,
         Indent,
         ...(options.history === false ? [] : [History]),
     ];

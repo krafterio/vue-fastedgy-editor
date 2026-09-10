@@ -1,7 +1,10 @@
 import { Plugin } from '@tiptap/pm/state';
 import { VueNodeViewRenderer } from '@tiptap/vue-3';
 
+import { h } from 'vue';
+
 import ImageView from '../components/blocks/ImageView.vue';
+import ImageLightbox from '../components/surfaces/ImageLightbox.vue';
 import { SizedImage } from '../extensions/image.js';
 
 /** The scheme of a file stored beside the record, the stable form of an image. */
@@ -22,17 +25,21 @@ const REFUSED = /^(javascript|vbscript):/i;
  * markdown has no word for it and the scheme is ours. `w` alone is legal, `h`
  * alone is not: without a width there is no size to write.
  *
- * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null> }} [options]
- *   How a picture gets in. `pickFile` is the application's, because how one
- *   chooses a file is not this package's business, and `store` answers with the
+ * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null>,
+ *   open?: (picture: { src: string, alt: string }) => void }} [options]
+ *   How a picture gets in. `pickFile` opens the browser's own file chooser
+ *   unless an application has another way, and `store` answers with the
  *   identifier of the attachment it wrote, or `null` where the record does not
  *   exist yet. It is read **on every call**, never captured: a screen builds its
  *   features once, while the record it shows is still loading. Answering `null`
  *   leaves the picture as a `data:` URI in the text, and the next save turns it
- *   into an attachment.
+ *   into an attachment. `open` is what a click on the picture calls, the
+ *   application showing it at full size however it shows one.
  * @returns {import('./registry.js').RichTextFeature}
  */
 export function imageFeature(options = {}) {
+    const chosen = { pickFile: pickImageFile, ...options };
+
     return {
         name: 'image',
         extensions: [
@@ -48,7 +55,7 @@ export function imageFeature(options = {}) {
                         insertPickedImage:
                             () =>
                             ({ editor }) => {
-                                void insertPicked(editor, options);
+                                void insertPicked(editor, chosen);
 
                                 return true;
                             },
@@ -56,10 +63,16 @@ export function imageFeature(options = {}) {
                 },
 
                 addProseMirrorPlugins() {
-                    return [pastedImages(this.editor, options)];
+                    return [pastedImages(this.editor, chosen)];
                 },
-            }).configure({ inline: false, allowBase64: true }),
+            }).configure({ inline: false, allowBase64: true, open: options.open ?? null }),
         ],
+        // Not mounted where the application lends a viewer of its own: two
+        // lightboxes would open on the same click.
+        surfaces: options.open
+            ? []
+            : [(editor, labels) => h(ImageLightbox, { editor, labels: { ...labels, ...options.labels } })],
+
         // A picture is the one thing on the "/" menu somebody looks for on the
         // strip: it is reached far more often than a rule.
         actions: [
@@ -98,23 +111,60 @@ export function imageFeature(options = {}) {
  * attachment on the next save: what somebody pasted is in the text from the
  * moment they pasted it, whether or not a record exists to store it against.
  */
+const picturesIn = (transfer) => [...(transfer?.files ?? [])].filter((file) => file.type.startsWith('image/'));
+
+/**
+ * Pictures brought in from outside, pasted or dropped.
+ *
+ * Dropped, they land where the pointer let go and not where the caret happened
+ * to be: the drop cursor has been following the pointer the whole way, and it
+ * would be saying something untrue otherwise. Read one after the other rather
+ * than all at once, so three pictures dropped together come out in the order
+ * they were dropped in.
+ */
 function pastedImages(editor, options) {
     return new Plugin({
         props: {
             handlePaste(view, event) {
-                const files = [...(event.clipboardData?.files ?? [])].filter((file) => file.type.startsWith('image/'));
+                const files = picturesIn(event.clipboardData);
 
                 if (files.length === 0) {
                     return false;
                 }
 
                 event.preventDefault();
-                void Promise.all(files.map((file) => insertFile(editor, file, options)));
+                void insertFiles(editor, files, options);
+
+                return true;
+            },
+
+            handleDrop(view, event, _slice, moved) {
+                const files = moved ? [] : picturesIn(event.dataTransfer);
+
+                if (files.length === 0) {
+                    return false;
+                }
+
+                const at = view.posAtCoords({ left: event.clientX, top: event.clientY });
+
+                event.preventDefault();
+
+                if (at) {
+                    editor.commands.setTextSelection(at.pos);
+                }
+
+                void insertFiles(editor, files, options);
 
                 return true;
             },
         },
     });
+}
+
+async function insertFiles(editor, files, options) {
+    for (const file of files) {
+        await insertFile(editor, file, options);
+    }
 }
 
 /**
@@ -124,6 +174,23 @@ function pastedImages(editor, options) {
  * written, and as the `data:` URI it was read as where the record is not there
  * yet. What is in the text is never lost waiting for a record.
  */
+/**
+ * The browser's own file chooser, which is the only one there is on the web.
+ *
+ * An application with another way of choosing a picture — a library of its own,
+ * a camera — passes `pickFile` instead.
+ */
+export function pickImageFile() {
+    return new Promise((resolve) => {
+        const input = document.createElement('input');
+
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = () => resolve(input.files?.[0] ?? null);
+        input.click();
+    });
+}
+
 async function insertPicked(editor, options) {
     const file = await options.pickFile?.();
 
@@ -141,7 +208,32 @@ async function insertFile(editor, file, options) {
     }
 }
 
-function asDataUri(file) {
+/**
+ * How wide a picture is carried at before it is stored, and how well.
+ *
+ * A picture written into a record that has no id yet travels inside the text as
+ * a `data:` URI, and the server stores it at the next save. Sent whole, a
+ * twelve megapixel photo makes every keystroke carry ten megabytes of base64
+ * until then; sent reduced, it appears at once even on a thin line and reaches
+ * the server the size a document draws it at.
+ */
+const CARRIED_WIDTH = 2048;
+const CARRIED_QUALITY = 0.82;
+
+/**
+ * The picture as it travels: reduced where it can be, whole where it cannot.
+ *
+ * Anything the browser cannot draw — an animation whose frames would be lost, a
+ * format canvas does not read — is carried as it is rather than flattened into
+ * something else.
+ */
+async function asDataUri(file) {
+    const reduced = file.type === 'image/gif' ? null : await drawnSmaller(file);
+
+    return reduced ?? readAsDataUri(file);
+}
+
+function readAsDataUri(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
 
@@ -149,6 +241,29 @@ function asDataUri(file) {
         reader.onerror = () => resolve(null);
         reader.readAsDataURL(file);
     });
+}
+
+async function drawnSmaller(file) {
+    if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') {
+        return null;
+    }
+
+    try {
+        const picture = await createImageBitmap(file);
+        const scale = Math.min(1, CARRIED_WIDTH / Math.max(picture.width, picture.height));
+        const canvas = document.createElement('canvas');
+
+        canvas.width = Math.max(1, Math.round(picture.width * scale));
+        canvas.height = Math.max(1, Math.round(picture.height * scale));
+        canvas.getContext('2d')?.drawImage(picture, 0, 0, canvas.width, canvas.height);
+        picture.close?.();
+
+        const drawn = canvas.toDataURL('image/jpeg', CARRIED_QUALITY);
+
+        return drawn.startsWith('data:image/') ? drawn : null;
+    } catch {
+        return null;
+    }
 }
 
 /**

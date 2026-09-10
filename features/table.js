@@ -48,7 +48,7 @@ export function tableFeature(options = {}) {
     return {
         name: 'table',
         extensions: [Table.configure({ resizable: true }), TableRow, TableHeader, TableCell, TableDuplication],
-        surfaces: [(editor) => h(TableHandles, { editor, labels: options.labels ?? {} })],
+        surfaces: [(editor, labels) => h(TableHandles, { editor, labels: { ...labels, ...options.labels } })],
 
         // Beside the blocks a button already makes: a table is reached about as
         // often as a picture, and the "/" menu costs a character typed and a

@@ -16,7 +16,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly menuItems: any[];
             readonly replacedMenuItems: Set<string>;
             readonly actions: any[];
-            readonly surfaces: ((editor: any) => any)[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
@@ -64,6 +64,11 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         default: null;
     };
     slashMenu: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /** `false` where the application docks a `RichTextActionBar` of its own. */
+    formatBubble: {
         type: BooleanConstructor;
         default: boolean;
     };
@@ -96,7 +101,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly menuItems: any[];
             readonly replacedMenuItems: Set<string>;
             readonly actions: any[];
-            readonly surfaces: ((editor: any) => any)[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
@@ -147,6 +152,11 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: BooleanConstructor;
         default: boolean;
     };
+    /** `false` where the application docks a `RichTextActionBar` of its own. */
+    formatBubble: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
     emptyPlaceholder: {
         type: StringConstructor;
         default: string;
@@ -176,6 +186,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     emptyPlaceholder: string;
     hintPlaceholder: string;
     slashMenu: boolean;
+    formatBubble: boolean;
     cover: string;
     storeCover: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;

@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue';
 
-import { useAnchoredRect } from '../../composables/anchored.js';
+import { useAnchoredRect, useSelectionInSight } from '../../composables/anchored.js';
 import AnchoredSurface from '../internal/AnchoredSurface.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 import { useRichTextIcons } from '../../composables/icons.js';
@@ -17,6 +17,8 @@ const { icon } = useRichTextIcons();
 
 const open = ref(null);
 const at = ref(0);
+
+useSelectionInSight(useTemplateRef('list'), at);
 
 /**
  * Where a menu was closed on purpose.
@@ -157,7 +159,7 @@ defineExpose({ isOpen: () => open.value !== null });
 
 <template>
     <AnchoredSurface :open="open !== null && offered.length > 0" :rect="rect" @close="close({ onPurpose: true })">
-        <div :id="id" class="fe-editor-floating" data-slot="editor-slash-menu" role="listbox">
+        <div :id="id" ref="list" class="fe-editor-floating" data-slot="editor-slash-menu" role="listbox">
             <component
                 :is="controls.tappable"
                 v-for="(item, index) in offered"

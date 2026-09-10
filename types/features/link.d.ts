@@ -32,4 +32,17 @@ export function linkFeature(options?: {
  * @returns {object}
  */
 export function withoutSelfLinks(doc: object): object;
+/**
+ * Gives an autolinked run back the address it was written with.
+ *
+ * A bare URL is turned into a link by the parser, which escapes the address on
+ * the way: `https://a.fr/décoration` comes back with an href of
+ * `https://a.fr/d%C3%A9coration`, and the document then holds an address nobody
+ * wrote. The mirror of {@link withoutSelfLinks}, and what keeps a note the same
+ * note on both sides.
+ *
+ * @param {object[]} blocks
+ * @returns {object[]}
+ */
+export function withWrittenSelfLinks(blocks: object[]): object[];
 //# sourceMappingURL=link.d.ts.map

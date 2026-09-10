@@ -17,7 +17,8 @@
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
- * @property {Array<(editor: any) => any>} [surfaces] - What floats above the editor, each handed the editor it belongs to
+ * @property {Array<(editor: any, labels: object) => any>} [surfaces] - What floats above the editor, each handed the
+ *   editor it belongs to and the words that editor was given
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
  * @property {MarkdownContract} [markdown]
  */
@@ -85,7 +86,7 @@ export function createFeatures(features?: RichTextFeature[]): {
          * where two are open would otherwise answer for the wrong one, and the
          * one that has the focus is rarely the one that was asked.
          */
-        readonly surfaces: ((editor: any) => any)[];
+        readonly surfaces: ((editor: any, labels: object) => any)[];
         readonly encoders: any;
         /**
          * By token type, the last feature declared offered first.
@@ -124,7 +125,7 @@ export function createFeatures(features?: RichTextFeature[]): {
          * where two are open would otherwise answer for the wrong one, and the
          * one that has the focus is rarely the one that was asked.
          */
-        readonly surfaces: ((editor: any) => any)[];
+        readonly surfaces: ((editor: any, labels: object) => any)[];
         readonly encoders: any;
         /**
          * By token type, the last feature declared offered first.
@@ -163,7 +164,7 @@ export function createFeatures(features?: RichTextFeature[]): {
          * where two are open would otherwise answer for the wrong one, and the
          * one that has the focus is rarely the one that was asked.
          */
-        readonly surfaces: ((editor: any) => any)[];
+        readonly surfaces: ((editor: any, labels: object) => any)[];
         readonly encoders: any;
         /**
          * By token type, the last feature declared offered first.
@@ -194,7 +195,7 @@ export function createFeatures(features?: RichTextFeature[]): {
      * where two are open would otherwise answer for the wrong one, and the
      * one that has the focus is rarely the one that was asked.
      */
-    readonly surfaces: ((editor: any) => any)[];
+    readonly surfaces: ((editor: any, labels: object) => any)[];
     readonly encoders: any;
     /**
      * By token type, the last feature declared offered first.
@@ -241,9 +242,10 @@ export type RichTextFeature = {
     menuItems?: any[] | undefined;
     actions?: any[] | undefined;
     /**
-     * - What floats above the editor, each handed the editor it belongs to
+     * - What floats above the editor, each handed the
+     * editor it belongs to and the words that editor was given
      */
-    surfaces?: ((editor: any) => any)[] | undefined;
+    surfaces?: ((editor: any, labels: object) => any)[] | undefined;
     /**
      * - Enter belongs to it right now
      */

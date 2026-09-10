@@ -13,6 +13,9 @@ defineProps({
     active: { type: Boolean, default: false },
     radius: { type: Number, default: null },
     tooltip: { type: String, default: '' },
+
+    /** Offered but out of reach right now: undo with nothing to undo. */
+    disabled: { type: Boolean, default: false },
 });
 </script>
 
@@ -20,6 +23,7 @@ defineProps({
     <Toggle
         data-slot="editor-tappable"
         :model-value="active"
+        :disabled="disabled"
         :aria-label="tooltip || undefined"
         :title="tooltip || undefined"
         :style="radius === null ? undefined : { borderRadius: `${radius}px` }"

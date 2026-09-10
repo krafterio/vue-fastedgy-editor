@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, TextSelection } from '@tiptap/pm/state';
 
-import { boundedDelta, rangeFrom } from './indent.js';
+import { blockAt, boundedDelta, rangeFrom } from './indent.js';
 
 /**
  * Dragging a block takes what is written under it.
@@ -18,8 +18,6 @@ export const RangeDrag = Extension.create({
     name: 'rangeDrag',
 
     addProseMirrorPlugins() {
-        const editor = this.editor;
-
         return [
             new Plugin({
                 props: {
@@ -37,8 +35,8 @@ export const RangeDrag = Extension.create({
                             return false;
                         },
 
-                        dragend: () => {
-                            editor.view.dom.style.removeProperty('--fe-drop-indent');
+                        dragend: (view) => {
+                            depthOf(view)?.style.removeProperty('--fe-drop-indent');
 
                             return false;
                         },
@@ -48,18 +46,94 @@ export const RangeDrag = Extension.create({
                             // how deep the block will land.
                             const at = landing(view, event);
 
-                            view.dom.style.setProperty('--fe-drop-indent', String(at?.indent ?? 0));
+                            depthOf(view)?.style.setProperty('--fe-drop-indent', String(at?.indent ?? 0));
 
                             return false;
                         },
                     },
 
-                    handleDrop: (view, event) => moveTo(view, event),
+                    /*
+                     * Only what was picked up here.
+                     *
+                     * A file dropped from outside is not a block being moved:
+                     * taken for one, the range under the caret is torn out and
+                     * put back where the file was meant to land, and whoever
+                     * handles files never sees the drop at all.
+                     */
+                    handleDrop: (view, event, _slice, moved) => (moved ? moveTo(view, event) : false),
+                },
+
+                /*
+                 * A drag begun at the handle ends at the handle, which stands
+                 * beside the text and not in it: nothing in the editor hears
+                 * the end, so the line saying where the block would land stays
+                 * drawn over a gesture that is over — and escape cancels a drag
+                 * that goes on showing one.
+                 *
+                 * Heard on the page and said again to the text, where the drop
+                 * cursor and the depth of the drop are both listening.
+                 */
+                view: (view) => {
+                    const ended = () => view.dom.dispatchEvent(new Event('dragend'));
+
+                    document.addEventListener('dragend', ended);
+
+                    return { destroy: () => document.removeEventListener('dragend', ended) };
                 },
             }),
         ];
     },
 });
+
+/**
+ * Where the depth of a drop is written, which is where the line that reads it
+ * hangs: ProseMirror puts it on the editor's `offsetParent`, in the layout of
+ * the application rather than in the editor.
+ */
+const depthOf = (view) => view.dom.offsetParent ?? view.dom;
+
+/** What was said from the margin, and therefore at no depth at all. */
+const beside = new WeakSet();
+
+/**
+ * A gesture that never leaves the margin, said again to the text.
+ *
+ * The handle hangs beside the blocks and outside them, so a pointer that stays
+ * with it says nothing the editor hears: no line is drawn, and letting go drops
+ * nothing anywhere. What is heard in the margin is said again on the same line
+ * at the edge of the text, and what lands there lands at the depth the margin
+ * stands at, which is none.
+ *
+ * Said at the edge rather than where the pointer really is: ProseMirror reads a
+ * drop by asking what is under it, and nothing is under the margin.
+ *
+ * @param {import('@tiptap/pm/view').EditorView} view
+ * @param {MouseEvent} event - A `mousemove`, a `dragover` or a `drop`
+ * @returns {boolean} - Whether the margin is where it was said
+ */
+export function alongMargin(view, event) {
+    const box = view.dom.getBoundingClientRect();
+
+    if (event.clientX >= box.left || event.clientY < box.top || event.clientY > box.bottom) {
+        return false;
+    }
+
+    // Built from what it repeats, so a drag carries its own transfer over and a
+    // move carries nothing it has not got.
+    const Said = /** @type {new (type: string, init: object) => MouseEvent} */ (event.constructor);
+    const said = new Said(event.type, {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: /** @type {DragEvent} */ (event).dataTransfer,
+        clientX: box.left + 1,
+        clientY: event.clientY,
+    });
+
+    beside.add(said);
+    view.dom.dispatchEvent(said);
+
+    return true;
+}
 
 /** The blocks of the document, flat, as the format reads them. */
 function blocksOf(state) {
@@ -73,9 +147,7 @@ function blocksOf(state) {
 /** The block the selection sits in, and the range it carries. */
 function rangeAround(state) {
     const blocks = blocksOf(state);
-    const at = blocks.findIndex(
-        (block) => state.selection.from >= block.pos && state.selection.from <= block.pos + block.node.nodeSize
-    );
+    const at = blockAt(blocks, state.selection.from);
 
     if (at < 0) {
         return null;
@@ -87,17 +159,22 @@ function rangeAround(state) {
     );
 
     const first = blocks[range.from];
-    const last = blocks[range.to];
+
+    // `to` is excluded, as `rangeFrom` says: read as the last block of the
+    // range, a block dragged from the end of a document reads past it.
+    const last = blocks[range.to - 1];
 
     return {
         at,
         range,
         from: first.pos,
         to: last.pos + last.node.nodeSize,
-        selection: TextSelection.create(
-            state.doc,
-            first.pos,
-            Math.min(last.pos + last.node.nodeSize, state.doc.content.size)
+        // Between the two ends rather than on them: a range may start or finish
+        // on a block that holds no text — a picture, a rule — and a text
+        // selection cannot end there.
+        selection: TextSelection.between(
+            state.doc.resolve(first.pos),
+            state.doc.resolve(Math.min(last.pos + last.node.nodeSize, state.doc.content.size))
         ),
     };
 }
@@ -117,7 +194,7 @@ function landing(view, event) {
     }
 
     const blocks = blocksOf(view.state);
-    const found = blocks.find((block) => at.pos >= block.pos && at.pos <= block.pos + block.node.nodeSize);
+    const found = blocks[blockAt(blocks, at.pos)];
 
     if (!found) {
         return null;
@@ -127,7 +204,7 @@ function landing(view, event) {
     const box = drawn instanceof Element ? drawn.getBoundingClientRect() : null;
     const before = box ? event.clientY < box.top + box.height / 2 : false;
 
-    return { pos: found.pos, indent: found.indent, node: found.node, before };
+    return { pos: found.pos, indent: beside.has(event) ? 0 : found.indent, node: found.node, before };
 }
 
 /**
@@ -160,7 +237,7 @@ function moveTo(view, event) {
 
     const moved = [];
 
-    for (let at = picked.range.from; at <= picked.range.to; at++) {
+    for (let at = picked.range.from; at < picked.range.to; at++) {
         const block = blocks[at];
 
         moved.push(

@@ -19,9 +19,10 @@ afterEach(() => {
     document.body.innerHTML = '';
 });
 
-async function documentOf(props = {}) {
+async function documentOf({ slots, ...props } = {}) {
     const page = mount(DocumentEditor, {
         props: { features, codec, ...props },
+        slots,
         attachTo: document.body,
     });
 
@@ -64,6 +65,117 @@ describe('DocumentEditor', () => {
         expect(reading.find('[data-slot="document-gutter"]').exists()).toBe(false);
     });
 
+    it('locks the text itself, which is what a form does while it saves', async () => {
+        const page = await documentOf({ modelValue: 'du texte', editable: false });
+        const editor = editorOf(page);
+
+        expect(editor.isEditable).toBe(false);
+        expect(page.find('.ProseMirror').attributes('contenteditable')).toBe('false');
+
+        await page.setProps({ editable: true });
+
+        expect(editor.isEditable).toBe(true);
+    });
+
+    it('reaches down the whole block, so the pointer can get to the handle', async () => {
+        const page = await documentOf({ modelValue: 'du texte' });
+        const editor = editorOf(page);
+        const gutter = page.find('[data-slot="document-gutter"]');
+
+        expect(gutter.attributes('style')).toBeUndefined();
+
+        // jsdom lays nothing out, so the block says how tall it is.
+        editor.view.nodeDOM = () =>
+            Object.assign(document.createElement('p'), {
+                getBoundingClientRect: () => ({ height: 58 }),
+            });
+
+        page.findComponent({ name: 'DocumentGutter' }).vm.onNodeChange({ node: {}, pos: 0 });
+        await nextTick();
+
+        // One line tall, it is given up before the pointer leaving a paragraph
+        // of three lines has reached it.
+        expect(page.find('[data-slot="document-gutter"]').attributes('style')).toContain('min-height: 58px');
+    });
+
+    it('answers for the line beside it over the whole width of the margin', async () => {
+        const page = await documentOf({ modelValue: 'du texte' });
+        const blocks = editorOf(page).view.dom;
+
+        // jsdom lays nothing out, so the text says where its edges are.
+        blocks.getBoundingClientRect = () => ({ left: 100, top: 0, right: 800, bottom: 400 });
+
+        const said = [];
+
+        blocks.addEventListener('mousemove', (event) => said.push([event.clientX, event.clientY]));
+
+        const walk = (clientX, clientY) =>
+            page
+                .find('[data-slot="document-scroll"]')
+                .element.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX, clientY }));
+
+        // The handle is only as tall as its own line, and hangs far from the
+        // text: what the pointer walks past out there is the whole margin.
+        walk(4, 300);
+
+        expect(said).toEqual([[101, 300]]);
+
+        // Over the text it says itself, and answering would never end.
+        walk(150, 300);
+
+        // Beside the header, which is the application's and answers for itself.
+        walk(4, 900);
+
+        expect(said).toEqual([[101, 300]]);
+    });
+
+    it('drops what was dragged along the margin, at no depth at all', async () => {
+        const page = await documentOf({ modelValue: 'du texte' });
+        const blocks = editorOf(page).view.dom;
+
+        blocks.getBoundingClientRect = () => ({ left: 100, top: 0, right: 800, bottom: 400 });
+
+        const said = [];
+
+        blocks.addEventListener('drop', (event) => said.push([event.clientX, event.clientY]));
+
+        const drop = new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: 4, clientY: 300 });
+
+        page.find('[data-slot="document-scroll"]').element.dispatchEvent(drop);
+
+        // Said at the edge of the text: ProseMirror reads a drop by asking what
+        // is under it, and nothing is under the margin.
+        expect(said).toEqual([[101, 300]]);
+
+        // The browser is told to do nothing of its own with it.
+        expect(drop.defaultPrevented).toBe(true);
+    });
+
+    it('gives the handle up when the pointer leaves the page', async () => {
+        const page = await documentOf({ modelValue: 'du texte' });
+        const gutter = page.findComponent({ name: 'DocumentGutter' });
+
+        gutter.vm.onNodeChange({ node: {}, pos: 0 });
+        await nextTick();
+
+        expect(page.find('[data-slot="document-gutter"]').attributes('data-shown')).toBe('true');
+
+        await page.find('[data-slot="document-scroll"]').trigger('mouseleave');
+        await nextTick();
+
+        expect(page.find('[data-slot="document-gutter"]').attributes('data-shown')).toBeUndefined();
+    });
+
+    it('says the grip is draggable, a browser refusing to drag from a button', async () => {
+        const page = await documentOf({ modelValue: 'du texte' });
+
+        // The menu brick is rendered as a button, and a form control swallows
+        // the press that would have started the drag of what holds it.
+        expect(page.find('[data-slot="document-gutter"] [data-slot="editor-menu"]').attributes('draggable')).toBe(
+            'true'
+        );
+    });
+
     it('refuses the focus to a click beside the blocks', async () => {
         const page = await documentOf({ modelValue: 'du texte' });
         const blocks = editorOf(page).view.dom.getBoundingClientRect();
@@ -74,11 +186,32 @@ describe('DocumentEditor', () => {
         });
         const inside = new MouseEvent('pointerdown', { clientY: blocks.top, cancelable: true, bubbles: true });
 
-        page.find('[data-slot="document-scroll"]').element.dispatchEvent(outside);
-        page.find('[data-slot="document-scroll"]').element.dispatchEvent(inside);
+        page.find('[data-slot="document-blocks"]').element.dispatchEvent(outside);
+        page.find('[data-slot="document-blocks"]').element.dispatchEvent(inside);
 
         expect(outside.defaultPrevented).toBe(true);
         expect(inside.defaultPrevented).toBe(false);
+    });
+
+    it('leaves the header and the footer their own pointer, a title being typed in one', async () => {
+        const page = await documentOf({
+            modelValue: 'du texte',
+            slots: { header: '<input data-title />', footer: '<button data-said>dire</button>' },
+        });
+
+        const blocks = editorOf(page).view.dom.getBoundingClientRect();
+
+        for (const selector of ['[data-title]', '[data-said]']) {
+            const pressed = new MouseEvent('pointerdown', {
+                clientY: blocks.bottom + 200,
+                cancelable: true,
+                bubbles: true,
+            });
+
+            page.find(selector).element.dispatchEvent(pressed);
+
+            expect(pressed.defaultPrevented, selector).toBe(false);
+        }
     });
 
     it('says how far an upload is, out loud', async () => {

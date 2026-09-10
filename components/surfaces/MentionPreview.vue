@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { useAnchoredRect } from '../../composables/anchored.js';
 import AnchoredSurface from '../internal/AnchoredSurface.vue';
@@ -13,6 +13,9 @@ const props = defineProps({
 
     /** What opens what a mention points at, a route on the web. */
     open: { type: Function, default: null },
+
+    /** Words the card says, by name. Nothing is shipped. */
+    labels: { type: Object, default: () => ({}) },
 });
 
 const controls = useRichTextControls();
@@ -28,14 +31,17 @@ const { rect, follow } = useAnchoredRect(() => chip.value?.getBoundingClientRect
 
 const sourceOf = (model) => props.sources.find((source) => source.model === model) ?? null;
 
+/** Whether the source of what is shown says its records can be gone to. */
+const openable = computed(() => (chip.value ? sourceOf(recordOf(chip.value).model)?.openable === true : false));
+
 const recordOf = (element) => ({
     model: element.getAttribute('data-model'),
     id: Number(element.getAttribute('data-id')),
 });
 
 /**
- * Loaded on hovering and not before: a document holding forty mentions would
- * otherwise ask for forty records to show none of them.
+ * Read when the card is asked for, and not before: a document holding forty
+ * mentions would otherwise ask for forty records to show none of them.
  */
 async function show(element) {
     const record = recordOf(element);
@@ -63,7 +69,7 @@ async function show(element) {
 
     read.set(cached, found);
 
-    // The pointer may have moved on while the record was being read.
+    // Another mention may have been asked for while the record was being read.
     if (chip.value === element) {
         preview.value = found;
     }
@@ -71,25 +77,27 @@ async function show(element) {
     loading.value = false;
 }
 
-function onOver(event) {
-    const element = event.target instanceof Element ? event.target.closest('[data-mention]') : null;
-
-    if (!element) {
-        chip.value = null;
-        preview.value = null;
-
-        return;
-    }
-
-    void show(element);
-}
-
+/**
+ * A tap shows the card, it does not follow the mention.
+ *
+ * As on mobile: what a mention points at is read before it is gone to, and the
+ * card carries the way there when the record has one. Asked for rather than
+ * offered: a card that opened on its own under a pointer merely reading covers
+ * what is being read, again and again, line after line.
+ */
 function onClick(event) {
     const element = event.target instanceof Element ? event.target.closest('[data-mention]') : null;
 
-    if (element && props.open) {
+    if (element) {
         event.preventDefault();
-        props.open(recordOf(element));
+        void show(element);
+    }
+}
+
+function follows() {
+    if (chip.value) {
+        props.open?.(recordOf(chip.value));
+        chip.value = null;
     }
 }
 
@@ -99,12 +107,10 @@ let listening = null;
 
 onMounted(() => {
     listening = props.editor.view.dom;
-    props.editor.view.dom.addEventListener('pointerover', onOver);
     props.editor.view.dom.addEventListener('click', onClick);
 });
 
 onBeforeUnmount(() => {
-    listening?.removeEventListener('pointerover', onOver);
     listening?.removeEventListener('click', onClick);
 });
 </script>
@@ -117,12 +123,38 @@ onBeforeUnmount(() => {
                 <component :is="controls.placeholder" :width="120" :height="12" />
             </template>
 
-            <template v-else>
-                <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
+            <!--
+              Guarded rather than left to the surface being shut: what is drawn
+              is settled in the same flush as what closed it, so the card renders
+              once more with nothing to show before reka takes it away.
+            -->
+            <template v-else-if="preview">
+                <div data-slot="editor-mention-preview-head">
+                    <component
+                        :is="preview.leading"
+                        v-if="preview.leading"
+                        data-slot="editor-mention-preview-leading"
+                    />
 
-                <p v-for="(line, at) in preview.lines ?? []" :key="at" data-slot="editor-mention-preview-line">
-                    {{ line }}
-                </p>
+                    <div data-slot="editor-mention-preview-said">
+                        <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
+
+                        <p v-if="preview.subtitle" data-slot="editor-mention-preview-subtitle">
+                            {{ preview.subtitle }}
+                        </p>
+                    </div>
+                </div>
+
+                <dl v-if="preview.facts?.length" data-slot="editor-mention-preview-facts">
+                    <template v-for="[said, value] in preview.facts" :key="said">
+                        <dt>{{ said }}</dt>
+                        <dd>{{ value }}</dd>
+                    </template>
+                </dl>
+
+                <div v-if="open && openable" data-slot="editor-mention-preview-action">
+                    <component :is="controls.button" :label="labels.open ?? ''" :on-tap="follows" />
+                </div>
             </template>
         </div>
     </AnchoredSurface>

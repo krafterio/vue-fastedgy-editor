@@ -17,7 +17,8 @@
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
- * @property {Array<(editor: any) => any>} [surfaces] - What floats above the editor, each handed the editor it belongs to
+ * @property {Array<(editor: any, labels: object) => any>} [surfaces] - What floats above the editor, each handed the
+ *   editor it belongs to and the words that editor was given
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
  * @property {MarkdownContract} [markdown]
  */

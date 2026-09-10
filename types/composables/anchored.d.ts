@@ -35,4 +35,16 @@ export function anchoredStyle(rect: DOMRect | null, options?: {
     gap?: number;
     place?: "above" | "below";
 }): Record<string, string>;
+/**
+ * A list keeps what it points at in sight.
+ *
+ * Arrow keys walk the entries while the caret goes on writing, so nothing here
+ * ever takes the focus and nothing scrolls on its own: a list longer than the
+ * room it has would carry its selection below the fold, and the one thing a
+ * keyboard needs is to see where it is.
+ *
+ * @param {import('vue').Ref<HTMLElement|null>} holder - The list itself
+ * @param {import('vue').Ref<unknown>} selected - What moves when the choice does
+ */
+export function useSelectionInSight(holder: import("vue").Ref<HTMLElement | null>, selected: import("vue").Ref<unknown>): void;
 //# sourceMappingURL=anchored.d.ts.map

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
 
 import { useRichTextControls } from '../../composables/controls.js';
 import { useRichTextIcons } from '../../composables/icons.js';
@@ -15,6 +15,18 @@ const { icon } = useRichTextIcons();
 const table = ref(null);
 const rect = ref(null);
 
+/*
+ * Where a handle is measured from.
+ *
+ * Not the viewport: a `fixed` handle is laid out against the nearest ancestor
+ * carrying a transform, and an application that animates a panel in has one, so
+ * every handle lands a panel's width away from its table. The holder is asked
+ * where it actually sits and everything is placed against that, which stays true
+ * whatever is between it and the page.
+ */
+const holder = useTemplateRef('holder');
+const origin = ref({ left: 0, top: 0 });
+
 /** The table the pointer is over, and the position it starts at. */
 function follow(event) {
     const element = event.target instanceof Element ? event.target.closest('table') : null;
@@ -29,6 +41,7 @@ function follow(event) {
 
     table.value = element;
     rect.value = element.getBoundingClientRect();
+    origin.value = holder.value?.getBoundingClientRect() ?? { left: 0, top: 0 };
 }
 
 function clear(event) {
@@ -128,37 +141,91 @@ const rowActions = (cell) => [
     },
 ];
 
-const at = (cell, side) => ({
-    position: 'fixed',
-    left: side === 'row' ? `${Math.round(rect.value.left - 16)}px` : `${Math.round(cell.left)}px`,
-    top: side === 'row' ? `${Math.round(cell.top)}px` : `${Math.round(rect.value.top - 16)}px`,
-    width: side === 'row' ? '14px' : `${Math.round(cell.width)}px`,
-    height: side === 'row' ? `${Math.round(cell.height)}px` : '14px',
+const placed = (left, top, width, height) => ({
+    position: 'absolute',
+    left: `${Math.round(left - origin.value.left)}px`,
+    top: `${Math.round(top - origin.value.top)}px`,
+    width: `${Math.round(width)}px`,
+    height: `${Math.round(height)}px`,
 });
+
+const at = (cell, side) =>
+    side === 'row'
+        ? placed(rect.value.left - 18, cell.top, 14, cell.height)
+        : placed(cell.left, rect.value.top - 18, cell.width, 14);
+
+/**
+ * One more column, one more row: the two the mobile side offers as a plus at the
+ * edge rather than through a menu, because they are what somebody filling a
+ * table in reaches for over and over.
+ */
+const beyond = (side) =>
+    side === 'column'
+        ? placed(rect.value.right + 4, rect.value.top, 18, rect.value.height)
+        : placed(rect.value.left, rect.value.bottom + 4, rect.value.width, 18);
+
+function grow(side) {
+    const cell = side === 'column' ? columns.value.at(-1) : rows.value.at(-1);
+
+    if (cell) {
+        on(cell, (chain) => (side === 'column' ? chain.addColumnAfter() : chain.addRowAfter()));
+    }
+}
 </script>
 
 <template>
-    <div v-if="rect && editor.isEditable" data-slot="editor-table-handles">
-        <component
-            :is="controls.menu"
-            v-for="(cell, column) in columns"
-            :key="`column-${column}`"
-            :actions="columnActions(cell)"
-            :label="labels.column"
-            :style="at(cell, 'column')"
-        >
-            <component :is="icon('gripColumn')" v-if="icon('gripColumn')" />
-        </component>
+    <!--
+      The holder carries its own placement rather than taking it from the
+      stylesheet: every handle is measured against it, so where it sits is part
+      of what this does and not part of how it looks. Zero-sized and in the flow,
+      it takes no room and is the box its handles are placed in, whatever the
+      application has done to what is above it.
+    -->
+    <div ref="holder" data-slot="editor-table-handles" :style="{ position: 'relative', width: 0, height: 0 }">
+        <template v-if="rect && editor.isEditable">
+            <component
+                :is="controls.menu"
+                v-for="(cell, column) in columns"
+                :key="`column-${column}`"
+                :actions="columnActions(cell)"
+                :label="labels.column"
+                :style="at(cell, 'column')"
+            >
+                <component :is="icon('gripColumn')" v-if="icon('gripColumn')" />
+            </component>
 
-        <component
-            :is="controls.menu"
-            v-for="(cell, row) in rows"
-            :key="`row-${row}`"
-            :actions="rowActions(cell)"
-            :label="labels.row"
-            :style="at(cell, 'row')"
-        >
-            <component :is="icon('gripRow')" v-if="icon('gripRow')" />
-        </component>
+            <component
+                :is="controls.menu"
+                v-for="(cell, row) in rows"
+                :key="`row-${row}`"
+                :actions="rowActions(cell)"
+                :label="labels.row"
+                :style="at(cell, 'row')"
+            >
+                <component :is="icon('gripRow')" v-if="icon('gripRow')" />
+            </component>
+
+            <component
+                :is="controls.tappable"
+                data-slot="editor-table-grow"
+                data-side="column"
+                :style="beyond('column')"
+                :tooltip="labels.addColumn ?? ''"
+                :on-tap="() => grow('column')"
+            >
+                <component :is="icon('add')" v-if="icon('add')" />
+            </component>
+
+            <component
+                :is="controls.tappable"
+                data-slot="editor-table-grow"
+                data-side="row"
+                :style="beyond('row')"
+                :tooltip="labels.addRow ?? ''"
+                :on-tap="() => grow('row')"
+            >
+                <component :is="icon('add')" v-if="icon('add')" />
+            </component>
+        </template>
     </div>
 </template>

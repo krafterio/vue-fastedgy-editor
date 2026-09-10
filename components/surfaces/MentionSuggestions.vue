@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from 'vue';
 
-import { useAnchoredRect } from '../../composables/anchored.js';
+import { useAnchoredRect, useSelectionInSight } from '../../composables/anchored.js';
 import AnchoredSurface from '../internal/AnchoredSurface.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 import { suggestionState } from '../../extensions/mention-suggestion.js';
@@ -127,6 +127,8 @@ function onKeyDown(event) {
 
 const active = computed(() => candidates.value[at.value] ?? null);
 
+useSelectionInSight(useTemplateRef('list'), active);
+
 /**
  * Which of the two lines reads first.
  *
@@ -160,7 +162,7 @@ watch(() => props.editor, read);
 
 <template>
     <AnchoredSurface :open="open !== null && candidates.length > 0" :rect="rect" @close="close">
-        <div :id="id" class="fe-editor-floating" data-slot="editor-mention-suggestions" role="listbox">
+        <div :id="id" ref="list" class="fe-editor-floating" data-slot="editor-mention-suggestions" role="listbox">
             <component
                 :is="controls.tappable"
                 v-for="candidate in candidates"
@@ -170,6 +172,8 @@ watch(() => props.editor, read);
                 :active="candidate === active"
                 :on-tap="() => pick(candidate)"
             >
+                <component :is="candidate.leading" v-if="candidate.leading" data-slot="editor-mention-leading" />
+
                 <span data-slot="editor-mention-label">{{ shown(candidate).first }}</span>
 
                 <span v-if="shown(candidate).second" data-slot="editor-mention-subtitle">

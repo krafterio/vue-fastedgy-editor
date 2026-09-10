@@ -13,16 +13,18 @@ export function coreMenuItems(): {
     run: any;
 }[];
 /**
- * What a bubble over a selection offers on its own: the marks a run can wear.
+ * What a strip offers on its own, in the groups the mobile side declares: the
+ * two ways back, the marks a run wears, the lists, the kind a line becomes, and
+ * what is dropped in. A feature adds its own after, in the group it names.
  *
- * The features add what they add, each in its own group, and the bubble draws
- * them in that order.
+ * Everything is offered whether it can run or not, and says which: a strip whose
+ * buttons come and go is a strip nobody learns the shape of.
  */
 export function coreActions(): {
     name: any;
     glyph: any;
-    group: number;
-    isActive: (editor: any) => any;
+    group: any;
+    isActive: any;
     isEnabled: (editor: any) => any;
     run: any;
 }[];

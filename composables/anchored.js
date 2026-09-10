@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
  * Where a floating surface sits, read from what it hangs on.
@@ -87,4 +87,26 @@ export function anchoredStyle(rect, options = {}) {
         top: above ? `${Math.round(rect.top - gap)}px` : `${Math.round(rect.bottom + gap)}px`,
         transform: above ? 'translateY(-100%)' : undefined,
     };
+}
+
+/**
+ * A list keeps what it points at in sight.
+ *
+ * Arrow keys walk the entries while the caret goes on writing, so nothing here
+ * ever takes the focus and nothing scrolls on its own: a list longer than the
+ * room it has would carry its selection below the fold, and the one thing a
+ * keyboard needs is to see where it is.
+ *
+ * @param {import('vue').Ref<HTMLElement|null>} holder - The list itself
+ * @param {import('vue').Ref<unknown>} selected - What moves when the choice does
+ */
+export function useSelectionInSight(holder, selected) {
+    watch(selected, async () => {
+        await nextTick();
+
+        // Asked of the entry rather than of the list, and only where a page
+        // scrolls at all: what draws without a viewport has nothing to bring
+        // into sight.
+        holder.value?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+    });
 }

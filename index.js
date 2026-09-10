@@ -1,8 +1,15 @@
 // Components
 export { default as DocumentEditor } from './components/DocumentEditor.vue';
 export { default as DocumentViewer } from './components/DocumentViewer.vue';
+export { default as RichTextActionBar } from './components/RichTextActionBar.vue';
 export { default as RichTextEditor } from './components/RichTextEditor.vue';
 export { default as RichTextViewer } from './components/RichTextViewer.vue';
+
+// Words
+export * from './labels.js';
+
+// Merging
+export * from './merge.js';
 
 // Codecs
 export * from './json/codec.js';
@@ -34,9 +41,11 @@ export * from './features/todo-list.js';
 
 // Controls, glyphs and floating surfaces
 export * from './composables/anchored.js';
-export * from './composables/editor.js';
 export * from './composables/controls.js';
+export * from './composables/editor.js';
 export * from './composables/icons.js';
+export * from './composables/inline-images.js';
+export * from './composables/mention-sources.js';
 export * from './composables/pictures.js';
 
 // Extensions

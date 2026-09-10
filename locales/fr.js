@@ -1,0 +1,63 @@
+/**
+ * French for what the editor says to a reader. The English text is the key, as
+ * everywhere else, and an application that words one entry differently keeps its
+ * own: what is here is a default, not a decision.
+ */
+export const fr = {
+    Text: 'Texte',
+    Bold: 'Gras',
+    Italic: 'Italique',
+    Underline: 'Souligné',
+    Strikethrough: 'Barré',
+    Code: 'Code',
+    'Heading 1': 'Titre 1',
+    'Heading 2': 'Titre 2',
+    'Heading 3': 'Titre 3',
+    'Bulleted list': 'Liste à puces',
+    'Numbered list': 'Liste numérotée',
+    'To-do list': 'Liste de tâches',
+    Quote: 'Citation',
+    Divider: 'Trait',
+    Undo: 'Annuler',
+    Redo: 'Rétablir',
+    Table: 'Tableau',
+    Image: 'Image',
+    Link: 'Lien',
+    'Code block': 'Bloc de code',
+
+    Formatting: 'Mise en forme',
+    'Add a block': 'Ajouter un bloc',
+    Block: 'Bloc',
+    Duplicate: 'Dupliquer',
+    Delete: 'Supprimer',
+    Replace: 'Remplacer',
+    Remove: 'Retirer',
+
+    Address: 'Adresse',
+    Title: 'Titre',
+    Value: 'Valeur',
+    Apply: 'Appliquer',
+    Open: 'Ouvrir',
+    Unlink: 'Dissocier',
+    Language: 'Langage',
+    Sending: 'Envoi',
+
+    Close: 'Fermer',
+    'Save the image': `Enregistrer l'image`,
+    'Actual size': 'Taille réelle',
+    Previous: 'Précédent',
+    Next: 'Suivant',
+
+    Column: 'Colonne',
+    Row: 'Ligne',
+    'Add a column': 'Ajouter une colonne',
+    'Add a row': 'Ajouter une ligne',
+    'Insert left': 'Insérer à gauche',
+    'Insert right': 'Insérer à droite',
+    'Insert above': 'Insérer au-dessus',
+    'Insert below': 'Insérer en dessous',
+    'Duplicate the column': 'Dupliquer la colonne',
+    'Duplicate the row': 'Dupliquer la ligne',
+    'Delete the column': 'Supprimer la colonne',
+    'Delete the row': 'Supprimer la ligne',
+};

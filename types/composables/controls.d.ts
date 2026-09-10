@@ -45,11 +45,16 @@ export const defaultRichTextControls: Readonly<{
                 type: StringConstructor;
                 default: string;
             };
+            disabled: {
+                type: BooleanConstructor;
+                default: boolean;
+            };
         }>> & Readonly<{}>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, import("vue").PublicProps, {
             onTap: Function;
             radius: number;
             active: boolean;
             tooltip: string;
+            disabled: boolean;
         }, true, {}, {}, import("vue").GlobalComponents, import("vue").GlobalDirectives, string, {}, any, import("vue").ComponentProvideOptions, {
             P: {};
             B: {};
@@ -74,11 +79,16 @@ export const defaultRichTextControls: Readonly<{
                 type: StringConstructor;
                 default: string;
             };
+            disabled: {
+                type: BooleanConstructor;
+                default: boolean;
+            };
         }>> & Readonly<{}>, {}, {}, {}, {}, {
             onTap: Function;
             radius: number;
             active: boolean;
             tooltip: string;
+            disabled: boolean;
         }>;
         __isFragment?: never;
         __isTeleport?: never;
@@ -100,11 +110,16 @@ export const defaultRichTextControls: Readonly<{
             type: StringConstructor;
             default: string;
         };
+        disabled: {
+            type: BooleanConstructor;
+            default: boolean;
+        };
     }>> & Readonly<{}>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, {
         onTap: Function;
         radius: number;
         active: boolean;
         tooltip: string;
+        disabled: boolean;
     }, {}, string, {}, import("vue").GlobalComponents, import("vue").GlobalDirectives, string, import("vue").ComponentProvideOptions> & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps & (new () => {
         $slots: {
             default?: (props: {}) => any;

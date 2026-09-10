@@ -21,6 +21,15 @@ const DENIED_SCHEMES = /^\s*(javascript|data|vbscript):/i;
 export function createParser(options = {}) {
     const md = new MarkdownIt({ html: false, linkify: true, typographer: false });
 
+    /*
+     * A bare URL keeps the letters it was written with.
+     *
+     * Linkify renders the address it found as a page would show it, percent
+     * decoded; the stored format is not a page. Left alone, every save would
+     * rewrite `https://a.fr/%C3%A9x` as `https://a.fr/éx` in somebody's note.
+     */
+    md.normalizeLinkText = (address) => address;
+
     md.inline.ruler.before('autolink', 'underline_html', underlineHtml);
 
     for (const rule of options.inlineRules ?? []) {
@@ -86,13 +95,14 @@ const CLOSE_OF = {
 export function inlineContent(token) {
     const content = [];
     const open = [];
+
     const push = (text, marks) => {
         if (text.length === 0) {
             return;
         }
 
         const last = content.at(-1);
-        const same = last && JSON.stringify(last.marks ?? []) === JSON.stringify(marks);
+        const same = last?.type === 'text' && JSON.stringify(last.marks ?? []) === JSON.stringify(marks);
 
         // ProseMirror merges neighbouring runs carrying the same marks, and the
         // encoder writes one pair of markers per run: two runs left apart would
@@ -118,8 +128,17 @@ export function inlineContent(token) {
                 push(child.content, [...marks, { type: 'code' }]);
                 break;
 
+            /*
+             * A line cut inside a block is a line cut, not a space.
+             *
+             * Markdown says a lone newline is a soft break and a renderer is
+             * free to make a space of it; the stored format is not a renderer.
+             * A note written on three lines comes back on three lines, or every
+             * save on the web would run somebody's verses into one sentence.
+             */
             case 'softbreak':
-                push(' ', marks);
+            case 'hardbreak':
+                content.push({ type: 'hardBreak' });
                 break;
 
             case 'link_open': {
@@ -246,9 +265,7 @@ export function decodeChunk(markdown, options = {}) {
             }
 
             case 'blockquote_open': {
-                const body = tokens.slice(at).find((next) => next.type === 'inline');
-
-                blocks.push({ type: 'blockquote', content: [paragraphOf(body)] });
+                blocks.push({ type: 'blockquote', content: [paragraphOf(bodyOf(tokens, at, 'blockquote_close'))] });
                 break;
             }
 
@@ -261,9 +278,7 @@ export function decodeChunk(markdown, options = {}) {
                 break;
 
             case 'list_item_open': {
-                const body = tokens.slice(at).find((next) => next.type === 'inline');
-
-                blocks.push(itemOf(paragraphOf(body), number));
+                blocks.push(itemOf(paragraphOf(bodyOf(tokens, at, 'list_item_close')), number));
 
                 if (number !== null) {
                     number++;
@@ -280,6 +295,17 @@ export function decodeChunk(markdown, options = {}) {
     }
 
     return blocks.map((block) => (block.content?.length === 0 ? { ...block, content: undefined } : block));
+}
+
+/**
+ * What the block opening at [from] says, and not a word further.
+ *
+ * An empty item holds no inline at all: read to the end of the stream, it finds
+ * the words of the next item, and a list written `- \n- \n- Tapis` comes back
+ * with three bullets all saying `Tapis`.
+ */
+function bodyOf(tokens, from, closing) {
+    return tokens.slice(from, skipTo(tokens, from, closing)).find((token) => token.type === 'inline');
 }
 
 function skipTo(tokens, from, closing) {

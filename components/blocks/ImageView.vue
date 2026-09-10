@@ -39,9 +39,24 @@ const style = computed(() => ({
     height: size.value.height ? `${Math.round(size.value.height)}px` : undefined,
 }));
 
+/**
+ * Taking hold of the handle takes hold of the picture.
+ *
+ * A click on the picture opens it, so the handle is the one place left that can
+ * select the node — and selecting it is what makes a picture something to move,
+ * copy or delete, rather than something to look at.
+ */
 function startResize(event) {
     if (!props.editor.isEditable) {
         return;
+    }
+
+    const position = props.getPos();
+
+    // The focus with it, or the keyboard goes on talking to wherever the caret
+    // was and backspace deletes a letter somewhere else.
+    if (typeof position === 'number') {
+        props.editor.chain().focus().setNodeSelection(position).run();
     }
 
     const box = frame.value?.getBoundingClientRect();
@@ -83,12 +98,41 @@ function endResize() {
 }
 
 onBeforeUnmount(endResize);
+
+/**
+ * A click opens the picture at full size: the application's own viewer where it
+ * lent one, the package's lightbox otherwise.
+ *
+ * The press never reaches ProseMirror, which would take the picture as a whole
+ * and put the browser's own selection on it — and setting a selection scrolls it
+ * into view, so the document moved under a picture that had just filled the
+ * screen. Taking hold of the picture is the handle's job, and it says so.
+ */
+function open() {
+    const picture = { src: props.node.attrs.src ?? '', alt: props.node.attrs.alt ?? '' };
+
+    if (props.extension.options.open) {
+        props.extension.options.open(picture);
+
+        return;
+    }
+
+    props.extension.storage.open?.(picture.src, picture.alt);
+}
 </script>
 
 <template>
     <NodeViewWrapper data-slot="editor-image" :data-selected="selected || undefined">
         <div ref="frame" data-slot="editor-image-frame" :style="style">
-            <img v-fetcher-src.lazy :src="source" :alt="node.attrs.alt ?? ''" draggable="false" />
+            <img
+                v-fetcher-src.lazy
+                :src="source"
+                :alt="node.attrs.alt ?? ''"
+                draggable="false"
+                data-openable=""
+                @mousedown.prevent.stop
+                @click.stop="open"
+            />
 
             <span
                 v-if="editor.isEditable"

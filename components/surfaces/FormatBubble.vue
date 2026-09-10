@@ -1,19 +1,16 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { NodeSelection } from '@tiptap/pm/state';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { useAnchoredRect } from '../../composables/anchored.js';
-import { useRichTextControls } from '../../composables/controls.js';
-import { useRichTextIcons } from '../../composables/icons.js';
 import AnchoredSurface from '../internal/AnchoredSurface.vue';
+import ActionStrip from './ActionStrip.vue';
 
 const props = defineProps({
     editor: { type: Object, required: true },
     actions: { type: Array, default: () => [] },
     labels: { type: Object, default: () => ({}) },
 });
-
-const controls = useRichTextControls();
-const { icon } = useRichTextIcons();
 
 const shown = ref(false);
 
@@ -34,12 +31,18 @@ const { rect, follow } = useAnchoredRect(
 );
 
 /**
- * A bubble appears only where **its** editor has the focus and something
- * selected. Without the focus, two editors on a page both show one, or the
- * neighbour's is the one that answers.
+ * A bubble appears only where **its** editor has the focus and words selected.
+ *
+ * Without the focus, two editors on a page both show one, or the neighbour's is
+ * the one that answers. And a whole block taken as one — a picture, a rule — is
+ * not something to put in bold: clicking a picture opens it, and a strip of
+ * formatting over what has just filled the screen belongs to nothing.
  */
 function read() {
-    shown.value = props.editor.isEditable && props.editor.isFocused && !props.editor.state.selection.empty;
+    const { selection } = props.editor.state;
+
+    shown.value =
+        props.editor.isEditable && props.editor.isFocused && !selection.empty && !(selection instanceof NodeSelection);
 
     if (shown.value) {
         follow();
@@ -60,26 +63,12 @@ onBeforeUnmount(() => {
     props.editor.off('focus', read);
     props.editor.off('blur', read);
 });
-
-const offered = computed(() =>
-    props.actions.filter((action) => (action.isEnabled ? action.isEnabled(props.editor) : true))
-);
 </script>
 
 <template>
     <AnchoredSurface :open="shown && rect !== null" :rect="rect" side="top" align="center" @close="shown = false">
         <div class="fe-editor-floating" data-slot="editor-bubble">
-            <component
-                :is="controls.tappable"
-                v-for="action in offered"
-                :key="action.name"
-                :active="action.isActive?.(editor) === true"
-                :tooltip="labels[action.name] ?? ''"
-                :on-tap="() => action.run(editor)"
-            >
-                <component :is="icon(action.glyph ?? action.name)" v-if="icon(action.glyph ?? action.name)" />
-                <span v-else>{{ labels[action.name] ?? action.name }}</span>
-            </component>
+            <ActionStrip :editor="editor" :actions="actions" :labels="labels" />
         </div>
     </AnchoredSurface>
 </template>

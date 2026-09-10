@@ -31,9 +31,12 @@ const MARKUP = /[\\[\]@*_`<>~]/g;
  *   Where a mention points, in the shape the application routes. Mounted without
  *   one, mentions still draw and still write their label: nothing here decides
  *   what a path looks like.
- * @param {Array<{ trigger: string, model: string, search: (query: string) => Promise<Array<{ id: number, label: string, subtitle?: string }>>, preview?: (id: number) => Promise<object|null>, onMention?: (candidate: object) => void }>} [options.sources]
+ * @param {Array<{ trigger: string, model: string, search: (query: string) => Promise<Array<{ id: number, label: string, subtitle?: string, leading?: import('vue').Component }>>, preview?: (id: number) => Promise<{ title: string, subtitle?: string, leading?: import('vue').Component, facts?: Array<[string, string]> }|null>, openable?: boolean, onMention?: (candidate: object) => void }>} [options.sources]
  *   One per kind of mention: what arms it, what record it writes, and what it
- *   offers. A trigger with no source behind it is never armed.
+ *   offers. A trigger with no source behind it is never armed, and `openable`
+ *   is what puts the way there on the card of a record that has one. A `leading`
+ *   is a **component**, never a built node: what draws a candidate is rendered
+ *   where it is shown, and the same node cannot be in two places at once.
  * @param {(record: { model: string, id: number }) => void} [options.open]
  *   What a chip opens, a route on the web.
  * @returns {import('./registry.js').RichTextFeature}
@@ -75,7 +78,13 @@ export function mentionFeature(options = {}) {
 
         surfaces: [
             (editor) => h(MentionSuggestions, { editor, triggers }),
-            (editor) => h(MentionPreview, { editor, sources, open: options.open ?? null }),
+            (editor, labels) =>
+                h(MentionPreview, {
+                    editor,
+                    sources,
+                    open: options.open ?? null,
+                    labels: { ...labels, ...options.labels },
+                }),
         ],
 
         // Enter belongs to the list while it is open, or a field that sends on

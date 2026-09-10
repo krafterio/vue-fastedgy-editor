@@ -21,6 +21,11 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: StringConstructor;
         default: string;
     };
+    /** Offered but out of reach right now: undo with nothing to undo. */
+    disabled: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
 }>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
     onTap: {
         type: FunctionConstructor;
@@ -38,11 +43,17 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: StringConstructor;
         default: string;
     };
+    /** Offered but out of reach right now: undo with nothing to undo. */
+    disabled: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
 }>> & Readonly<{}>, {
     onTap: Function;
     radius: number;
     active: boolean;
     tooltip: string;
+    disabled: boolean;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 type __VLS_Slots = {
     default?: ((props: {}) => any) | undefined;

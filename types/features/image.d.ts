@@ -10,20 +10,40 @@
  * markdown has no word for it and the scheme is ours. `w` alone is legal, `h`
  * alone is not: without a width there is no size to write.
  *
- * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null> }} [options]
- *   How a picture gets in. `pickFile` is the application's, because how one
- *   chooses a file is not this package's business, and `store` answers with the
+ * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null>,
+ *   open?: (picture: { src: string, alt: string }) => void }} [options]
+ *   How a picture gets in. `pickFile` opens the browser's own file chooser
+ *   unless an application has another way, and `store` answers with the
  *   identifier of the attachment it wrote, or `null` where the record does not
  *   exist yet. It is read **on every call**, never captured: a screen builds its
  *   features once, while the record it shows is still loading. Answering `null`
  *   leaves the picture as a `data:` URI in the text, and the next save turns it
- *   into an attachment.
+ *   into an attachment. `open` is what a click on the picture calls, the
+ *   application showing it at full size however it shows one.
  * @returns {import('./registry.js').RichTextFeature}
  */
 export function imageFeature(options?: {
     pickFile?: () => Promise<File | null>;
     store?: (file: File) => Promise<number | null>;
+    open?: (picture: {
+        src: string;
+        alt: string;
+    }) => void;
 }): import("./registry.js").RichTextFeature;
+/**
+ * Picks a file, stores it, and drops what came back into the document.
+ *
+ * The picture is inserted either way: as an attachment where one could be
+ * written, and as the `data:` URI it was read as where the record is not there
+ * yet. What is in the text is never lost waiting for a record.
+ */
+/**
+ * The browser's own file chooser, which is the only one there is on the web.
+ *
+ * An application with another way of choosing a picture — a library of its own,
+ * a camera — passes `pickFile` instead.
+ */
+export function pickImageFile(): Promise<any>;
 /**
  * @param {object} node - Image node, ProseMirror JSON
  * @returns {string}
