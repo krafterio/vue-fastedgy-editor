@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import { escapeOffsets, escapedAt, unescaped } from './escape.js';
 import { spaceOutsideMarks } from './marks.js';
 import { joinChunks } from './nesting.js';
@@ -52,17 +47,47 @@ export function flatten(doc) {
     return blocks;
 }
 
+/** The blocks that hold words, and are therefore blank when they hold none. */
+const HOLDS_TEXT = new Set(['paragraph', 'heading', 'blockquote', 'listItem', 'taskItem', 'codeBlock']);
+
 /**
  * Whether [doc] is what a cleared field holds: nothing said, and no blank line
  * deliberately left standing.
+ *
+ * A block that holds words and holds none is blank whatever kind of block it is,
+ * a heading emptied of its words being as empty as the paragraph it was. A block
+ * with no words to hold is content: a picture says something, and a field that
+ * holds one alone is not a field somebody cleared.
  *
  * @param {object} doc
  * @returns {boolean}
  */
 export function isCleared(doc) {
-    const blocks = doc?.content ?? [];
+    const blocks = flatten(doc);
 
-    return blocks.length === 0 || (blocks.length === 1 && plainText(blocks[0]).length === 0);
+    return (
+        blocks.length === 0 ||
+        (blocks.length === 1 && HOLDS_TEXT.has(blocks[0].node.type) && saysNothing(blocks[0].node))
+    );
+}
+
+/**
+ * Whether [node] holds nothing said.
+ *
+ * An inline node is something said whatever it is: a mention is a word, and a
+ * field holding one alone is not a field somebody cleared. Only text can be
+ * empty.
+ */
+function saysNothing(node) {
+    const content = node?.content ?? [];
+
+    return content.every((child) => {
+        if (child.type === 'text') {
+            return (child.text ?? '').length === 0;
+        }
+
+        return Array.isArray(child.content) ? saysNothing(child) : false;
+    });
 }
 
 /**
@@ -134,7 +159,17 @@ function encodeRun(run) {
  * @returns {string}
  */
 export function encodeInline(node) {
-    return (node?.content ?? []).map((run) => (run.type === 'text' ? encodeRun(run) : '')).join('');
+    return (node?.content ?? [])
+        .map((run) => {
+            if (run.type === 'text') {
+                return encodeRun(run);
+            }
+
+            // A line somebody broke inside a block, which only a table cell can
+            // carry into markdown, and writes it its own way there.
+            return run.type === 'hardBreak' ? '\n' : '';
+        })
+        .join('');
 }
 
 /** The paragraph an item holds, an item never holding more than one. */

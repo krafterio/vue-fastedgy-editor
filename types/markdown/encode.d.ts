@@ -18,6 +18,11 @@ export function flatten(doc: object): Array<{
  * Whether [doc] is what a cleared field holds: nothing said, and no blank line
  * deliberately left standing.
  *
+ * A block that holds words and holds none is blank whatever kind of block it is,
+ * a heading emptied of its words being as empty as the paragraph it was. A block
+ * with no words to hold is content: a picture says something, and a field that
+ * holds one alone is not a field somebody cleared.
+ *
  * @param {object} doc
  * @returns {boolean}
  */

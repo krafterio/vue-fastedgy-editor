@@ -1,7 +1,5 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
+// Codecs
+export * from './json/codec.js';
 
 // Markdown
 export * from './markdown/codec.js';
@@ -13,9 +11,25 @@ export * from './markdown/nesting.js';
 
 // Features
 export * from './features/registry.js';
+export * from './features/code-block.js';
+export * from './features/image.js';
 export * from './features/link.js';
+export * from './features/mention.js';
 export * from './features/plus-underline.js';
+export * from './features/table.js';
+export * from './features/todo-list.js';
+
+// Controls, glyphs and floating surfaces
+export * from './composables/anchored.js';
+export * from './composables/controls.js';
+export * from './composables/icons.js';
+export * from './composables/pictures.js';
 
 // Extensions
+export * from './extensions/clipboard.js';
+export * from './extensions/image.js';
 export * from './extensions/indent.js';
+export * from './extensions/mention.js';
+export * from './extensions/mention-suggestion.js';
+export * from './extensions/table-duplication.js';
 export * from './extensions/schema.js';

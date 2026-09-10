@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 /** What a mark is written with in markdown, and what a space next to it kills. */
 const MARK_KEYS = new Set(['bold', 'italic', 'underline', 'strike', 'code']);
 

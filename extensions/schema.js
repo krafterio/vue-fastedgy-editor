@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import Blockquote from '@tiptap/extension-blockquote';
 import Bold from '@tiptap/extension-bold';
 import BulletList from '@tiptap/extension-bullet-list';
@@ -10,6 +5,7 @@ import Code from '@tiptap/extension-code';
 import Document from '@tiptap/extension-document';
 import Dropcursor from '@tiptap/extension-dropcursor';
 import Gapcursor from '@tiptap/extension-gapcursor';
+import HardBreak from '@tiptap/extension-hard-break';
 import Heading from '@tiptap/extension-heading';
 import History from '@tiptap/extension-history';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
@@ -46,6 +42,7 @@ export function coreExtensions(options = {}) {
         Paragraph,
         Heading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
         Blockquote,
+        HardBreak,
         HorizontalRule,
         BulletList,
         OrderedList,

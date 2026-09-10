@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import { Extension } from '@tiptap/core';
 
 /** The blocks that can sit under another one. A list container never does: its items do. */

@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 /**
  * One content feature: everything a kind of block needs, declared in one place.
  * How it renders, how it is typed and inserted, and how it is written to and
@@ -22,14 +17,41 @@
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
+ * @property {Array<(editor: any) => any>} [surfaces] - What floats above the editor, each handed the editor it belongs to
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
  * @property {MarkdownContract} [markdown]
  */
 
 /**
+ * One entry of the "/" menu.
+ *
+ * Data, never a widget: what is offered is declared here, and the drawing is the
+ * application's, on its own buttons and its own glyphs. `name` is the key it
+ * says the entry with, the package shipping no words of its own.
+ *
+ * @typedef {object} SlashMenuItem
+ * @property {string} name
+ * @property {string} [glyph]
+ * @property {string[]} [keywords]
+ * @property {(editor: any) => void} run
+ */
+
+/**
+ * One thing a formatting strip can do, said without drawing anything.
+ *
+ * @typedef {object} ToolbarAction
+ * @property {string} name
+ * @property {string} [glyph]
+ * @property {number} [group] - Actions of one group stand together
+ * @property {(editor: any) => boolean} [isActive] - Already done to the text under the caret
+ * @property {(editor: any) => boolean} [isEnabled] - Usable at all right now
+ * @property {(editor: any) => void} run
+ */
+
+/**
  * @typedef {object} MarkdownContract
  * @property {Record<string, (node: object, context: object) => string>} [encoders] - By node type
- * @property {Record<string, (token: object, tokens: object[], at: number) => object[]>} [decoders] - By token type
+ * @property {Record<string, (token: object, tokens: object[], at: number) => object[]|null>} [decoders] - By token type, `null` handing the token back to the core
  * @property {Array<(md: any) => void>} [inlineRules] - Offered before the parser's own
  * @property {(doc: object) => object} [before] - A last pass before writing
  * @property {(blocks: object[]) => object[]} [after] - Its mirror, over what was just read
@@ -52,6 +74,11 @@ export function createFeatures(features = []) {
 
         /** The same set less the features of these names. */
         without(...names) {
+            return createFeatures(features.filter((feature) => !names.includes(feature.name)));
+        },
+
+        /** The same, given the names in one list. */
+        withoutAll(names) {
             return createFeatures(features.filter((feature) => !names.includes(feature.name)));
         },
 
@@ -80,12 +107,44 @@ export function createFeatures(features = []) {
             return features.flatMap((feature) => feature.actions ?? []);
         },
 
+        /**
+         * What floats above an editor, mounted by that editor and by nobody
+         * else.
+         *
+         * Each one is handed the editor it belongs to: a popover of a document
+         * where two are open would otherwise answer for the wrong one, and the
+         * one that has the focus is rarely the one that was asked.
+         */
+        get surfaces() {
+            return features.flatMap((feature) => feature.surfaces ?? []);
+        },
+
         get encoders() {
             return merge('encoders');
         },
 
+        /**
+         * By token type, the last feature declared offered first.
+         *
+         * Two features can want the same token and only one of them at a time:
+         * an image and a widths marker are both a paragraph holding nothing
+         * else. Each is offered the token in turn, and `null` moves on to the
+         * next, the core reading what none of them took.
+         */
         get decoders() {
-            return merge('decoders');
+            const byType = {};
+
+            for (const feature of features) {
+                for (const [type, decode] of Object.entries(feature.markdown?.decoders ?? {})) {
+                    const previous = byType[type];
+
+                    byType[type] = previous
+                        ? (token, tokens, at) => decode(token, tokens, at) ?? previous(token, tokens, at)
+                        : decode;
+                }
+            }
+
+            return byType;
         },
 
         get inlineRules() {

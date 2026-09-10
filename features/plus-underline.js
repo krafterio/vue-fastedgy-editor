@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 /** A word character, before which `++` is the two characters it looks like. */
 const WORD = /[\p{L}\p{N}]/u;
 

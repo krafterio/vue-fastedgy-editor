@@ -1,35 +1,30 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import { describe, expect, it } from 'vitest';
 
 import { joinChunks, parentOf, splitChunks } from '../../markdown/nesting.js';
 
 describe('splitChunks', () => {
-    it('sépare sur une ligne vide', () => {
+    it('ends a chunk on a blank line', () => {
         expect(splitChunks('a\n\nb')).toEqual([
             { markdown: 'a', indent: 0 },
             { markdown: 'b', indent: 0 },
         ]);
     });
 
-    it('sépare sur un changement de profondeur, sans ligne vide', () => {
+    it('ends a chunk on a change of depth, blank line or not', () => {
         expect(splitChunks('a\n    b')).toEqual([
             { markdown: 'a', indent: 0 },
             { markdown: 'b', indent: 1 },
         ]);
     });
 
-    it('ne coupe pas une fence sur la ligne vide qu elle contient', () => {
+    it('never cuts a fence on the blank line it holds', () => {
         expect(splitChunks('```js\nun\n\ndeux\n```\n\naprès')).toEqual([
             { markdown: '```js\nun\n\ndeux\n```', indent: 0 },
             { markdown: 'après', indent: 0 },
         ]);
     });
 
-    it('lit une tabulation comme un niveau, ce que le paquet écrivait avant', () => {
+    it('reads a tab as one level, which is what was written before', () => {
         expect(splitChunks('a\n\n\tb\n\n\t\tc')).toEqual([
             { markdown: 'a', indent: 0 },
             { markdown: 'b', indent: 1 },
@@ -39,7 +34,7 @@ describe('splitChunks', () => {
 });
 
 describe('joinChunks', () => {
-    it('écrit quatre espaces par niveau et une ligne vide entre les blocs', () => {
+    it('writes four spaces per level and a blank line between blocks', () => {
         expect(
             joinChunks([
                 { markdown: 'a', indent: 0 },
@@ -48,11 +43,11 @@ describe('joinChunks', () => {
         ).toBe('a\n\n        b');
     });
 
-    it('n écrit jamais une tabulation', () => {
+    it('never writes a tab', () => {
         expect(joinChunks([{ markdown: 'b', indent: 1 }])).not.toContain('\t');
     });
 
-    it('laisse tomber un bloc qui ne dit rien', () => {
+    it('drops a block that says nothing', () => {
         expect(
             joinChunks([
                 { markdown: 'a', indent: 0 },
@@ -63,7 +58,7 @@ describe('joinChunks', () => {
 });
 
 describe('parentOf', () => {
-    it('rend le bloc ouvert le plus proche à une profondeur moindre', () => {
+    it('answers the nearest open block sitting less deep', () => {
         expect(
             parentOf(
                 new Map([

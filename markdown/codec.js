@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import { createFeatures } from '../features/registry.js';
 import { createParser, decodeChunk, decodeDocument } from './decode.js';
 import { encodeDocument } from './encode.js';

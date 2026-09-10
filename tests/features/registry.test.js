@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import { describe, expect, it } from 'vitest';
 
 import { createFeatures } from '../../features/registry.js';
@@ -10,7 +5,7 @@ import { createFeatures } from '../../features/registry.js';
 const feature = (name, extra = {}) => ({ name, ...extra });
 
 describe('createFeatures', () => {
-    it('classe les entrées de menu par groupe, puis par ordre de déclaration', () => {
+    it('sorts menu entries by group, then by the order they were declared in', () => {
         const set = createFeatures([
             feature('mention', { menuGroup: 1, menuItems: ['mention'] }),
             feature('table', { menuItems: ['table'] }),
@@ -20,7 +15,7 @@ describe('createFeatures', () => {
         expect(set.menuItems).toEqual(['table', 'image', 'mention']);
     });
 
-    it('laisse la dernière feature déclarée gagner un type de noeud', () => {
+    it('lets the last feature declared win a node type', () => {
         const set = createFeatures([
             feature('link', { markdown: { encoders: { text: () => 'lien' } } }),
             feature('mention', { markdown: { encoders: { text: () => 'mention' } } }),
@@ -29,7 +24,7 @@ describe('createFeatures', () => {
         expect(set.encoders.text()).toBe('mention');
     });
 
-    it('rejoue les passes de lecture dans l ordre inverse de celles d écriture', () => {
+    it('replays the reading passes in the reverse order of the writing ones', () => {
         const trace = [];
         const set = createFeatures([
             feature('a', { markdown: { before: (d) => (trace.push('a>'), d), after: (d) => (trace.push('a<'), d) } }),
@@ -42,7 +37,7 @@ describe('createFeatures', () => {
         expect(trace).toEqual(['a>', 'b>', 'b<', 'a<']);
     });
 
-    it('retire ce qu on nomme, des deux sens à la fois', () => {
+    it('drops what it is asked to, both directions at once', () => {
         const set = createFeatures([
             feature('image', { markdown: { encoders: { image: () => '' } } }),
             feature('link'),
@@ -52,7 +47,7 @@ describe('createFeatures', () => {
         expect(set.without('image').features.map((one) => one.name)).toEqual(['link']);
     });
 
-    it('tient Entrée dès qu une seule feature la tient', () => {
+    it('holds Enter as soon as a single feature holds it', () => {
         const set = createFeatures([feature('a'), feature('b', { holdsEnter: () => true })]);
 
         expect(set.holdsEnter({})).toBe(true);

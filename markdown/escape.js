@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 /**
  * What a backslash is allowed in front of in markdown, which is ASCII
  * punctuation and nothing else. Before anything else it is just a backslash,

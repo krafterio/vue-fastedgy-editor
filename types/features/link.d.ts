@@ -5,9 +5,22 @@
  * carry. What a feature owns is the round trip: a link whose address is its own
  * text is written bare.
  *
+ * The card that edits one floats above the editor, and it is where an address
+ * is filtered on the way in: a document is a place people paste into, and the
+ * schemes that could run are refused there as they are on the way out.
+ *
+ * @param {{ labels?: { address?: string, title?: string, apply?: string, open?: string, unlink?: string } }} [options]
  * @returns {import('./registry.js').RichTextFeature}
  */
-export function linkFeature(): import("./registry.js").RichTextFeature;
+export function linkFeature(options?: {
+    labels?: {
+        address?: string;
+        title?: string;
+        apply?: string;
+        open?: string;
+        unlink?: string;
+    };
+}): import("./registry.js").RichTextFeature;
 /**
  * Drops the href of a run that links to its own text, so it is written bare.
  *

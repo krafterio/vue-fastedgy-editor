@@ -20,6 +20,13 @@ export function createParser(options?: {
  */
 export function safeHref(href: string | null | undefined): string | null;
 /**
+ * The runs of one inline token, marks resolved.
+ *
+ * @param {object} token
+ * @returns {object[]}
+ */
+export function inlineContent(token: object): object[];
+/**
  * The blocks of one chunk, with nothing indented left in it.
  *
  * A list item comes back as the item alone, never wrapped: the container is what

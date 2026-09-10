@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import MarkdownIt from 'markdown-it';
 
 import { splitChunks } from './nesting.js';
@@ -82,8 +77,13 @@ const CLOSE_OF = {
     u_close: 'underline',
 };
 
-/** The runs of one inline token, marks resolved. */
-function inlineContent(token) {
+/**
+ * The runs of one inline token, marks resolved.
+ *
+ * @param {object} token
+ * @returns {object[]}
+ */
+export function inlineContent(token) {
     const content = [];
     const open = [];
     const push = (text, marks) => {
@@ -199,9 +199,13 @@ export function decodeChunk(markdown, options = {}) {
         const token = tokens[at];
         const inline = () => (tokens[at + 1]?.type === 'inline' ? tokens[at + 1] : null);
         const own = options.features?.decoders?.[token.type];
+        const taken = own ? own(token, tokens, at) : null;
 
-        if (own) {
-            blocks.push(...own(token, tokens, at));
+        // A feature reads the tokens it recognises and hands the rest back:
+        // an image is a paragraph holding nothing else, and every other
+        // paragraph is still the core's to read.
+        if (taken) {
+            blocks.push(...taken);
 
             continue;
         }
@@ -228,13 +232,18 @@ export function decodeChunk(markdown, options = {}) {
                 break;
 
             case 'fence':
-            case 'code_block':
+            case 'code_block': {
+                // An empty text node is not a node ProseMirror will hold, so a
+                // fence holding nothing holds nothing.
+                const written = token.content.replace(/\n$/, '');
+
                 blocks.push({
                     type: 'codeBlock',
                     attrs: { language: token.info?.trim() || null },
-                    content: [{ type: 'text', text: token.content.replace(/\n$/, '') }],
+                    ...(written.length > 0 ? { content: [{ type: 'text', text: written }] } : {}),
                 });
                 break;
+            }
 
             case 'blockquote_open': {
                 const body = tokens.slice(at).find((next) => next.type === 'inline');

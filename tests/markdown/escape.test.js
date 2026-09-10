@@ -1,8 +1,3 @@
-/*
- * Copyright Krafter SAS <developer@krafter.io>
- * MIT License (see LICENSE file).
- */
-
 import { describe, expect, it } from 'vitest';
 
 import { createFeatures } from '../../features/registry.js';
@@ -13,26 +8,26 @@ const codec = createMarkdownCodec(createFeatures([]));
 const paragraph = (text) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
 
 describe('escapeOffsets', () => {
-    it('propose le premier caractère de ponctuation, puis tout le premier mot', () => {
+    it('offers the first punctuation character, then the whole first word', () => {
         expect(escapeOffsets('--- suite')).toEqual([[0], [0, 1, 2]]);
     });
 
-    it('ne propose rien quand rien ne peut être échappé', () => {
+    it('offers nothing where nothing could be escaped', () => {
         expect(escapeOffsets('abc def')).toEqual([]);
         expect(escapeOffsets('   ')).toEqual([]);
     });
 
-    it('ne regarde que le premier mot', () => {
+    it('looks at the first word and no further', () => {
         expect(escapeOffsets('a #b')).toEqual([]);
     });
 });
 
 describe('unescaped', () => {
-    it('rend les caractères que les backslashs représentent', () => {
+    it('answers the characters the backslashes stand for', () => {
         expect(unescaped('\\#titre')).toBe('#titre');
     });
 
-    it('laisse un backslash qui ne représente rien', () => {
+    it('leaves a backslash that stands for nothing', () => {
         expect(unescaped('\\1')).toBe('\\1');
     });
 });
@@ -51,9 +46,9 @@ describe('escapedAt', () => {
     });
 });
 
-// L'échappement n'est décidé par aucune liste : le bloc est écrit, relu, comparé
-// à lui-même, et échappé jusqu'à ce qu'il revienne entier.
-describe('échappement par vérification', () => {
+// No list decides what is escaped: the block is written, read back, compared
+// to itself, and escaped until it comes back whole.
+describe('escaping by reading back', () => {
     const ambiguous = [
         ['# pas un titre', '\\# pas un titre'],
         ['- pas une puce', '\\- pas une puce'],
@@ -64,7 +59,7 @@ describe('échappement par vérification', () => {
     ];
 
     for (const [text, expected] of ambiguous) {
-        it(`écrit ${JSON.stringify(text)} de façon à le relire`, () => {
+        it(`writes ${JSON.stringify(text)} so that it reads back`, () => {
             const markdown = codec.encode(paragraph(text));
 
             expect(markdown).toBe(expected);
@@ -73,7 +68,7 @@ describe('échappement par vérification', () => {
         });
     }
 
-    it("n'échappe pas ce que markdown ne lirait pas de travers", () => {
+    it('escapes nothing markdown would read the right way anyway', () => {
         expect(codec.encode(paragraph('#pas un titre'))).toBe('#pas un titre');
         expect(codec.encode(paragraph('| a | b |'))).toBe('| a | b |');
     });
