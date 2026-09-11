@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mergeMarkdown } from '../merge.js';
+import { mergeMarkdown, useMergedDocument } from '../merge.js';
 
 describe('mergeMarkdown', () => {
     const base = ['# Courses', '', 'du pain', '', 'du lait'].join('\n');
@@ -52,5 +52,57 @@ describe('mergeMarkdown', () => {
         const ours = base.replace('du pain', 'du pain complet');
 
         expect(mergeMarkdown(base, theirs, ours)).toBe(ours);
+    });
+});
+
+describe('useMergedDocument', () => {
+    const opened = (markdown) => {
+        const content = { value: '' };
+        const body = useMergedDocument(content);
+
+        body.hold(markdown);
+
+        return { content, body };
+    };
+
+    it('says there is nothing to save until something is written', () => {
+        const { content, body } = opened('un\n\ndeux');
+
+        expect(body.changed()).toBe(false);
+
+        content.value = 'un\n\ndeux\n\ntrois';
+
+        expect(body.changed()).toBe(true);
+    });
+
+    it('writes what somebody else wrote into what is being written, and holds it', () => {
+        const { content, body } = opened('un\n\ndeux');
+
+        content.value = 'un, ici\n\ndeux';
+        body.absorb('un\n\ndeux, ailleurs');
+
+        expect(content.value).toBe('un, ici\n\ndeux, ailleurs');
+        expect(body.held()).toBe('un\n\ndeux, ailleurs');
+        expect(body.changed()).toBe(true);
+    });
+
+    it('writes in what a save stored of what was sent, keeping what was typed since', () => {
+        const { content, body } = opened('');
+        const sent = '![](data:image/png;base64,AAA)\n\nla suite';
+
+        content.value = `${sent}\n\nencore`;
+        body.answered(sent, '![](attachment:15)\n\nla suite');
+
+        expect(content.value).toBe('![](attachment:15)\n\nla suite\n\nencore');
+        expect(body.held()).toBe('![](attachment:15)\n\nla suite');
+    });
+
+    it('holds what was sent where the server stored it as it was', () => {
+        const { content, body } = opened('');
+
+        content.value = 'du texte';
+        body.answered('du texte', 'du texte');
+
+        expect(body.changed()).toBe(false);
     });
 });

@@ -21,4 +21,46 @@
  * @returns {string}
  */
 export function mergeMarkdown(base: string, theirs: string, ours: string): string;
+/**
+ * A document written here while it may be written elsewhere.
+ *
+ * What the server holds is remembered, as last known, and everything that comes
+ * back from it is written into what is on screen as a difference rather than
+ * taken whole: somebody else's version announced while a sentence is being
+ * typed, and the answer to a save, which comes back after the next keystroke.
+ * The caret stays where it is, the editor being handed only the blocks that
+ * changed.
+ *
+ * What says a version arrived, and what saves, is the application's: this is
+ * the part of it that is the same for every document.
+ *
+ * @param {{ value: string }} content - What the editor writes and is given, its model
+ * @returns {{
+ *   hold: (markdown: string) => void,
+ *   held: () => string,
+ *   changed: () => boolean,
+ *   absorb: (theirs: string) => void,
+ *   answered: (sent: string, stored: string) => void,
+ * }}
+ *
+ * @example
+ * const body = useMergedDocument(toRef(form, 'content'));
+ *
+ * body.hold(record.content);                        // opened
+ * if (body.changed()) {                             // a save to make
+ *     const sent = form.content;
+ *     const stored = (await api.save(id, { content: sent })).content;
+ *     body.answered(sent, stored);                  // what the server rewrote, written in
+ * }
+ * body.absorb(fresh.content);                       // written elsewhere, written in
+ */
+export function useMergedDocument(content: {
+    value: string;
+}): {
+    hold: (markdown: string) => void;
+    held: () => string;
+    changed: () => boolean;
+    absorb: (theirs: string) => void;
+    answered: (sent: string, stored: string) => void;
+};
 //# sourceMappingURL=merge.d.ts.map
