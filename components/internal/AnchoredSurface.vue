@@ -47,7 +47,14 @@ function keepFocus(event) {
         <PopoverAnchor :reference="anchor" />
 
         <PopoverPortal>
+            <!--
+              The layer is said here, on what reka portals: reka copies this
+              element's z-index onto the fixed wrapper it creates, which is what
+              stands against the application's own layers. Said on a child, it
+              stacks inside that wrapper and the wrapper stays at auto.
+            -->
             <PopoverContent
+                data-slot="editor-anchored"
                 :side="side"
                 :align="align"
                 :side-offset="6"

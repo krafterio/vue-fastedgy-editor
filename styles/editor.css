@@ -799,6 +799,10 @@
  * `data-state`, `data-side` and `data-highlighted` it writes, and the variables
  * it computes for the space it has, rather than anything measured again here.
  */
+[data-slot='editor-anchored'] {
+    z-index: 40;
+}
+
 .fe-editor-floating,
 [data-slot='editor-menu-content'],
 [data-slot='editor-picker-content'] {

@@ -77,6 +77,16 @@ describe('LinkPopover', () => {
         expect(inBody('[data-slot="editor-link-popover"]') !== null).toBe(true);
         expect(inBody('[data-slot="editor-link-popover"] input').value).toBe('https://melimelo.app');
     });
+
+    it('carries its layer on what reka portals, which is what reka lifts', async () => {
+        const editor = await editorWith(features, '<p>see <a href="https://melimelo.app">this</a></p>');
+        await mountSurfaces(features, editor);
+
+        editor.commands.setTextSelection(8);
+        await nextTick();
+
+        expect(inBody('[data-slot="editor-anchored"] [data-slot="editor-link-popover"]') !== null).toBe(true);
+    });
 });
 
 describe('TableHandles', () => {

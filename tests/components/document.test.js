@@ -49,7 +49,9 @@ describe('DocumentEditor', () => {
 
     it('sets itself into the column it is given when flush', async () => {
         expect((await documentOf()).find('[data-slot="document"]').attributes('data-flush')).toBeUndefined();
-        expect((await documentOf({ flush: true })).find('[data-slot="document"]').attributes('data-flush')).toBe('true');
+        expect((await documentOf({ flush: true })).find('[data-slot="document"]').attributes('data-flush')).toBe(
+            'true'
+        );
     });
 
     it('asks for a cover width rounded up to the next step', async () => {

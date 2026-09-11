@@ -36,6 +36,7 @@
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
+ * @property {string[]} [replacesActions] - Actions of the core strip it stands in for
  * @property {(kinds: string[]) => boolean} [takes] - Whether files of these kinds, dropped, are its
  * @property {() => Record<string, { copied?: Function, pasted?: Function }>} [clipboard] - What its nodes become
  *   on the clipboard, asked for while an editor is set up
@@ -381,6 +382,10 @@ export type RichTextEditing = {
     menuItems?: any[] | undefined;
     actions?: any[] | undefined;
     /**
+     * - Actions of the core strip it stands in for
+     */
+    replacesActions?: string[] | undefined;
+    /**
      * - Whether files of these kinds, dropped, are its
      */
     takes?: ((kinds: string[]) => boolean) | undefined;
@@ -488,6 +493,7 @@ declare function editingOf(parts: RichTextEditing[]): {
     /** Whether a feature takes files of these kinds, dropped on the text. */
     takes(kinds: any): boolean;
     readonly actions: any[];
+    readonly replacedActions: Set<string>;
     /**
      * What floats above an editor, mounted by that editor and by nobody
      * else.

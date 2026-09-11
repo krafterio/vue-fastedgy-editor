@@ -39,6 +39,7 @@ import { markRaw } from 'vue';
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
+ * @property {string[]} [replacesActions] - Actions of the core strip it stands in for
  * @property {(kinds: string[]) => boolean} [takes] - Whether files of these kinds, dropped, are its
  * @property {() => Record<string, { copied?: Function, pasted?: Function }>} [clipboard] - What its nodes become
  *   on the clipboard, asked for while an editor is set up
@@ -264,6 +265,10 @@ function editingOf(parts) {
 
         get actions() {
             return parts.flatMap((part) => part.actions ?? []);
+        },
+
+        get replacedActions() {
+            return new Set(parts.flatMap((part) => part.replacesActions ?? []));
         },
 
         /**

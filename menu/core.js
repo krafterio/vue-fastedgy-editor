@@ -127,12 +127,16 @@ export function menuItemsOf(editing) {
 
 /**
  * The actions a set offers, sorted by group and then by the order they were
- * declared in.
+ * declared in, minus what a feature said it stands in for.
  *
  * @param {import('../features/registry.js').RichTextEditingSet|null} editing
  *   What the features bring to an editor, the core's alone until it is loaded
  * @returns {object[]}
  */
 export function actionsOf(editing) {
-    return [...coreActions(), ...(editing?.actions ?? [])].sort((a, b) => (a.group ?? 0) - (b.group ?? 0));
+    const replaced = editing?.replacedActions ?? new Set();
+
+    return [...coreActions().filter((entry) => !replaced.has(entry.name)), ...(editing?.actions ?? [])].sort(
+        (a, b) => (a.group ?? 0) - (b.group ?? 0)
+    );
 }

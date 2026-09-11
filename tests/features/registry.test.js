@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createFeatures } from '../../features/registry.js';
+import { actionsOf, menuItemsOf } from '../../menu/core.js';
 
 const feature = (name, extra = {}) => ({ name, ...extra });
 
@@ -8,6 +9,17 @@ const feature = (name, extra = {}) => ({ name, ...extra });
 const writing = (name, part) => feature(name, { editing: async () => part });
 
 describe('createFeatures', () => {
+    it('leaves out of the menu and the strip what a feature stands in for', async () => {
+        const headings = ['heading1', 'heading2', 'heading3'];
+        const editing = await createFeatures([
+            { name: 'plain', editing: () => ({ replacesMenuItems: headings, replacesActions: headings }) },
+        ]).editing();
+
+        expect(menuItemsOf(editing).map((entry) => entry.name)).not.toContain('heading1');
+        expect(actionsOf(editing).map((entry) => entry.name)).not.toContain('heading2');
+        expect(actionsOf(editing).map((entry) => entry.name)).toContain('bold');
+    });
+
     it('sorts menu entries by group, then by the order they were declared in', async () => {
         const set = createFeatures([
             writing('mention', { menuGroup: 1, menuItems: ['mention'] }),
