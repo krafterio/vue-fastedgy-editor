@@ -1,11 +1,16 @@
-import { inject, provide } from 'vue';
+import { defineAsyncComponent, inject, markRaw, provide } from 'vue';
 
 import EditorButton from '../components/controls/EditorButton.vue';
 import EditorField from '../components/controls/EditorField.vue';
-import EditorMenu from '../components/controls/EditorMenu.vue';
-import EditorPicker from '../components/controls/EditorPicker.vue';
 import EditorPlaceholder from '../components/controls/EditorPlaceholder.vue';
 import EditorTappable from '../components/controls/EditorTappable.vue';
+
+/**
+ * The two bricks only writing draws, loaded the first time one is: what floats
+ * and what it floats with stay out of a page that only reads.
+ */
+const EditorMenu = markRaw(defineAsyncComponent(() => import('../components/controls/EditorMenu.vue')));
+const EditorPicker = markRaw(defineAsyncComponent(() => import('../components/controls/EditorPicker.vue')));
 
 const CONTROLS = Symbol('fe-rich-text-controls');
 

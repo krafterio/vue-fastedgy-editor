@@ -125,7 +125,7 @@ export const defaultRichTextControls: Readonly<{
             default?: (props: {}) => any;
         };
     });
-    picker: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
+    picker: import("vue").Raw<import("vue").DefineComponent<import("vue").ExtractPropTypes<{
         label: {
             type: StringConstructor;
             default: string;
@@ -173,7 +173,7 @@ export const defaultRichTextControls: Readonly<{
         selected: string | number | null;
         onSelect: Function;
         shown: string;
-    }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+    }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>>;
     button: {
         new (...args: any[]): import("vue").CreateComponentPublicInstanceWithMixins<Readonly<import("vue").ExtractPropTypes<{
             label: {
@@ -292,7 +292,7 @@ export const defaultRichTextControls: Readonly<{
         leading: Function | Record<string, any>;
         autofocus: boolean;
     }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
-    menu: {
+    menu: import("vue").Raw<{
         new (...args: any[]): import("vue").CreateComponentPublicInstanceWithMixins<Readonly<import("vue").ExtractPropTypes<{
             actions: {
                 type: ArrayConstructor;
@@ -344,7 +344,7 @@ export const defaultRichTextControls: Readonly<{
         $slots: {
             default?: (props: {}) => any;
         };
-    });
+    })>;
     placeholder: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
         width: {
             type: (NumberConstructor | StringConstructor)[];

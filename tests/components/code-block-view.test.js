@@ -1,7 +1,7 @@
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import javascript from 'highlight.js/lib/languages/javascript';
 import python from 'highlight.js/lib/languages/python';
 
@@ -36,7 +36,7 @@ describe('CodeBlockView', () => {
         await nextTick();
 
         expect(mounted.find('[data-slot="editor-code-block"]').exists()).toBe(true);
-        expect(mounted.find('[data-slot="editor-picker"]').exists()).toBe(true);
+        await vi.waitFor(() => expect(mounted.find('[data-slot="editor-picker"]').exists()).toBe(true));
         expect(mounted.find('[data-slot="editor-tappable"]').attributes('aria-label')).toBe('Copier');
         expect(mounted.text()).toContain('void main() {}');
     });
@@ -95,7 +95,7 @@ describe('the language of a code block, as on mobile', () => {
 
         await settled();
 
-        expect(mounted.get('[data-slot="editor-picker"]').text()).toBe('Auto · JavaScript');
+        await vi.waitFor(() => expect(mounted.find('[data-slot="editor-picker"]').text()).toBe('Auto · JavaScript'));
     });
 
     it('says the language a block names, by its name', async () => {
@@ -103,7 +103,7 @@ describe('the language of a code block, as on mobile', () => {
 
         await settled();
 
-        expect(mounted.get('[data-slot="editor-picker"]').text()).toBe('Python');
+        await vi.waitFor(() => expect(mounted.find('[data-slot="editor-picker"]').text()).toBe('Python'));
     });
 
     it('colours the code with the grammar it names', async () => {

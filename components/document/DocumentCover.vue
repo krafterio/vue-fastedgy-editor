@@ -1,10 +1,12 @@
 <script setup>
-import { ProgressIndicator, ProgressRoot } from 'reka-ui';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useStorage } from 'vue-fastedgy';
 
 import { useRichTextControls } from '../../composables/controls.js';
 import { useRichTextIcons } from '../../composables/icons.js';
+
+/** Loaded the first time a cover is sent: a page that is only read never sends one. */
+const DocumentCoverProgress = defineAsyncComponent(() => import('./DocumentCoverProgress.vue'));
 
 const props = defineProps({
     /** The stored path the record holds, never a URL built here. */
@@ -99,19 +101,7 @@ const actions = computed(() => [
     <div v-if="path" ref="band" data-slot="document-cover">
         <img v-if="source" v-fetcher-src.lazy :src="source" alt="" />
 
-        <!--
-          A bar somebody can hear as well as see: reka carries the role and the
-          values, and an upload that says nothing is an upload that looks stuck.
-        -->
-        <ProgressRoot
-            v-if="sending !== null"
-            data-slot="document-cover-progress"
-            :model-value="sending"
-            :max="100"
-            :aria-label="labels.sending ?? undefined"
-        >
-            <ProgressIndicator data-slot="document-cover-progress-bar" :style="{ width: `${sending}%` }" />
-        </ProgressRoot>
+        <DocumentCoverProgress v-if="sending !== null" :sending="sending" :label="labels.sending ?? ''" />
 
         <div v-else-if="editable" data-slot="document-cover-actions">
             <component

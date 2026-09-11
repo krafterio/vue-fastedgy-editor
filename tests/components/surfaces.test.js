@@ -93,9 +93,9 @@ describe('TableHandles', () => {
         expect(mounted.findAll('[data-slot="editor-menu"]')).toHaveLength(0);
 
         editor.view.dom.querySelector('td').dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
-        await nextTick();
 
-        expect(mounted.findAll('[data-slot="editor-menu"]')).toHaveLength(4);
+        // The menu is loaded the first time one is drawn.
+        await vi.waitFor(() => expect(mounted.findAll('[data-slot="editor-menu"]')).toHaveLength(4));
         expect(mounted.findAll('[data-slot="editor-table-grow"]')).toHaveLength(2);
     });
 });

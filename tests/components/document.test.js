@@ -231,7 +231,9 @@ describe('DocumentEditor', () => {
         });
 
         await page.find('[data-slot="document-cover-actions"] [data-slot="editor-tappable"]').trigger('click');
-        await nextTick();
+
+        // The bar is loaded the first time a cover is sent.
+        await vi.waitFor(() => expect(page.find('[data-slot="document-cover-progress"]').exists()).toBe(true));
 
         const bar = page.find('[data-slot="document-cover-progress"]');
 
