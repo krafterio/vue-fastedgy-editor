@@ -1,8 +1,9 @@
 declare const _default: typeof __VLS_export;
 export default _default;
 declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
-    editor: {
-        type: ObjectConstructor;
+    /** The element the text is drawn in, read once it is drawn. */
+    text: {
+        type: FunctionConstructor;
         required: true;
     };
     /** The sources the mentions were written from, by model. */
@@ -21,8 +22,9 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         default: () => {};
     };
 }>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
-    editor: {
-        type: ObjectConstructor;
+    /** The element the text is drawn in, read once it is drawn. */
+    text: {
+        type: FunctionConstructor;
         required: true;
     };
     /** The sources the mentions were written from, by model. */

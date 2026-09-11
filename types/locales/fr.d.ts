@@ -38,6 +38,9 @@ export const fr: {
     Open: string;
     Unlink: string;
     Language: string;
+    Auto: string;
+    Copy: string;
+    Copied: string;
     Sending: string;
     Close: string;
     'Save the image': string;

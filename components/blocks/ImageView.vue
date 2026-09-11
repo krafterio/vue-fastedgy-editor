@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 import { useStorage } from 'vue-fastedgy';
 
 import { attachmentId } from '../../features/image.js';
+import { richTextLabels } from '../../labels.js';
 
 const props = defineProps(nodeViewProps);
 
@@ -117,8 +118,17 @@ function open() {
         return;
     }
 
-    props.extension.storage.open?.(picture.src, picture.alt);
+    opened.value = picture;
 }
+
+/**
+ * The picture shown at full size, by the picture itself: it is drawn written
+ * and read alike, so it opens the same in both, with nothing for an editor to
+ * pass on. Mounted when asked for, and gone when closed.
+ */
+const opened = ref(null);
+
+const words = computed(() => ({ ...richTextLabels(), ...props.extension.options.labels }));
 </script>
 
 <template>
@@ -142,5 +152,13 @@ function open() {
                 @pointerdown.prevent="startResize"
             />
         </div>
+
+        <component
+            :is="extension.options.viewer"
+            v-if="opened && extension.options.viewer"
+            :picture="opened"
+            :labels="words"
+            @close="opened = null"
+        />
     </NodeViewWrapper>
 </template>

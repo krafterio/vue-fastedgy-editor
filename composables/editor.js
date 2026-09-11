@@ -2,10 +2,9 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useEditor } from '@tiptap/vue-3';
 
 import { richTextClipboard } from '../extensions/clipboard.js';
-import { coreExtensions } from '../extensions/schema.js';
+import { richTextExtensions } from '../extensions/schema.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
-import { useImageCarrier } from './pictures.js';
 
 /**
  * A tiptap editor built from a set of features, and nothing drawn.
@@ -29,15 +28,14 @@ import { useImageCarrier } from './pictures.js';
 export function useRichTextEditor(options = {}) {
     const features = options.features ?? createFeatures([]);
     const codec = options.codec ?? createMarkdownCodec(features);
-    const carrier = useImageCarrier();
+    const carriers = features.clipboard();
 
     return useEditor({
         editable: options.editable !== false,
         content: codec.decode(options.content ?? ''),
 
         extensions: [
-            ...coreExtensions(),
-            ...features.extensions,
+            ...richTextExtensions(features),
             Placeholder.configure({
                 placeholder: ({ editor, node }) =>
                     editor.isEmpty
@@ -46,7 +44,7 @@ export function useRichTextEditor(options = {}) {
                           ? (options.hintPlaceholder ?? '')
                           : '',
             }),
-            richTextClipboard({ codec, ...carrier }),
+            richTextClipboard({ codec, carriers }),
         ],
 
         onUpdate: ({ editor }) => options.onUpdate?.(codec.encode(editor.getJSON()), editor),

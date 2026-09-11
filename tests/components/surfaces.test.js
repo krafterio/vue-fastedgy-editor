@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { coreExtensions } from '../../extensions/schema.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 import { linkFeature } from '../../features/link.js';
 import { mentionFeature, pathAddressing } from '../../features/mention.js';
 import { createFeatures } from '../../features/registry.js';
@@ -18,7 +18,7 @@ const allInBody = (selector) => [...document.querySelectorAll(selector)];
 function editorWith(features, content) {
     const editor = new Editor({
         element: document.createElement('div'),
-        extensions: [...coreExtensions(), ...features.extensions],
+        extensions: richTextExtensions(features),
         content,
     });
 
@@ -32,10 +32,10 @@ function mountSurfaces(features, editor) {
     const mounted = mount(
         defineComponent({
             setup: () => () =>
-                h(
-                    'div',
-                    features.surfaces.map((surface) => surface(editor))
-                ),
+                h('div', [
+                    ...features.surfaces.map((surface) => surface(editor)),
+                    ...features.readingSurfaces.map((surface) => surface(() => editor.view.dom, {})),
+                ]),
         }),
         { attachTo: document.body }
     );

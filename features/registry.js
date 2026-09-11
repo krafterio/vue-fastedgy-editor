@@ -1,3 +1,5 @@
+import { markRaw } from 'vue';
+
 /**
  * One content feature: everything a kind of block needs, declared in one place.
  * How it renders, how it is typed and inserted, and how it is written to and
@@ -13,10 +15,16 @@
  * @typedef {object} RichTextFeature
  * @property {string} name
  * @property {any[]} [extensions] - What it adds to the schema
+ * @property {Record<string, any>} [views] - By node type, the component drawing it, written or read
  * @property {number} [menuGroup] - Where its "/" entries sit, lowest first
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
+ * @property {(kinds: string[]) => boolean} [takes] - Whether files of these kinds, dropped, are its
+ * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
+ *   text, written or read
+ * @property {() => Record<string, { copied?: Function, pasted?: Function }>} [clipboard] - What its nodes become
+ *   on the clipboard, asked for while an editor is set up
  * @property {Array<(editor: any, labels: object) => any>} [surfaces] - What floats above the editor, each handed the
  *   editor it belongs to and the words that editor was given
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
@@ -92,6 +100,22 @@ export function createFeatures(features = []) {
             return features.flatMap((feature) => feature.extensions ?? []);
         },
 
+        /**
+         * By node type, the component that draws it.
+         *
+         * The same one in the editor, where it is mounted as a node view, and in
+         * the viewer, where it is mounted with nothing to edit: a picture or a
+         * checkbox reads the same written or displayed because it is one
+         * component, not two kept alike. The last feature declared wins.
+         */
+        get views() {
+            const views = Object.assign({}, ...features.map((feature) => feature.views ?? {}));
+
+            // A component, not state: read through a reactive set of features, it
+            // stays the component it is.
+            return Object.fromEntries(Object.entries(views).map(([name, view]) => [name, markRaw(view)]));
+        },
+
         /** By group, and within one by the order they were declared in. */
         get menuItems() {
             return features
@@ -102,6 +126,23 @@ export function createFeatures(features = []) {
 
         get replacedMenuItems() {
             return new Set(features.flatMap((feature) => feature.replacesMenuItems ?? []));
+        },
+
+        /**
+         * By node type, what a node becomes on its way to the clipboard and
+         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+         * node or null where it travels as it is.
+         *
+         * Asked for while an editor is being set up: what carries a file along
+         * may need what the application provides, the storage client first.
+         */
+        clipboard() {
+            return Object.assign({}, ...features.map((feature) => feature.clipboard?.() ?? {}));
+        },
+
+        /** Whether a feature takes files of these kinds, dropped on the text. */
+        takes(kinds) {
+            return kinds.length > 0 && features.some((feature) => feature.takes?.(kinds) === true);
         },
 
         get actions() {
@@ -118,6 +159,17 @@ export function createFeatures(features = []) {
          */
         get surfaces() {
             return features.flatMap((feature) => feature.surfaces ?? []);
+        },
+
+        /**
+         * What floats over the text whether it is written or read, mounted by
+         * the editor and by the viewer alike.
+         *
+         * Each one is handed the element the text is drawn in, as a getter, and
+         * the words: a card a mention opens is the same card in both.
+         */
+        get readingSurfaces() {
+            return features.flatMap((feature) => feature.readingSurfaces ?? []);
         },
 
         get encoders() {

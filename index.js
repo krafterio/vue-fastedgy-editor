@@ -23,8 +23,7 @@ export * from './markdown/marks.js';
 export * from './markdown/nesting.js';
 
 // Rendering
-export * from './render/blocks.js';
-export * from './render/highlight.js';
+export * from './render/rich-text.js';
 
 // Menu and toolbar
 export * from './menu/core.js';

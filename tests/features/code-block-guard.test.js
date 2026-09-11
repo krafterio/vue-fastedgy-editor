@@ -1,13 +1,14 @@
 import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
-import { coreExtensions } from '../../extensions/schema.js';
+import { createFeatures } from '../../features/registry.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 import { codeBlockFeature } from '../../features/code-block.js';
 
 const editorWithFence = () =>
     new Editor({
         element: document.createElement('div'),
-        extensions: [...coreExtensions(), ...codeBlockFeature().extensions],
+        extensions: richTextExtensions(createFeatures([codeBlockFeature()])),
         content: { type: 'doc', content: [{ type: 'codeBlock', content: [{ type: 'text', text: 'x' }] }] },
     });
 

@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
-import { coreExtensions } from '../../extensions/schema.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 import { attachmentId, encodeImage, imageFeature, isAttachment } from '../../features/image.js';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
@@ -15,7 +15,7 @@ function serialised(content) {
     const features = createFeatures([imageFeature()]);
     const editor = new Editor({
         element: window.document.createElement('div'),
-        extensions: [...coreExtensions(), ...features.extensions],
+        extensions: richTextExtensions(features),
         content,
     });
 
@@ -32,7 +32,7 @@ function editorWithPictures(content, options = {}) {
 
     const editor = new Editor({
         element: window.document.createElement('div'),
-        extensions: [...coreExtensions(), ...features.extensions],
+        extensions: richTextExtensions(features),
         content,
     });
 

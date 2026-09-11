@@ -76,11 +76,13 @@ export function mentionFeature(options = {}) {
             run: (editor) => editor.chain().focus().insertContent(source.trigger).run(),
         })),
 
-        surfaces: [
-            (editor) => h(MentionSuggestions, { editor, triggers }),
-            (editor, labels) =>
+        surfaces: [(editor) => h(MentionSuggestions, { editor, triggers })],
+
+        // A tap shows the card, written or read alike.
+        readingSurfaces: [
+            (text, labels) =>
                 h(MentionPreview, {
-                    editor,
+                    text,
                     sources,
                     open: options.open ?? null,
                     labels: { ...labels, ...options.labels },

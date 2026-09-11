@@ -6,7 +6,8 @@ import AnchoredSurface from '../internal/AnchoredSurface.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 
 const props = defineProps({
-    editor: { type: Object, required: true },
+    /** The element the text is drawn in, read once it is drawn. */
+    text: { type: Function, required: true },
 
     /** The sources the mentions were written from, by model. */
     sources: { type: Array, default: () => [] },
@@ -102,12 +103,12 @@ function follows() {
 }
 
 // The element the listeners were posted on, kept for the moment they are taken
-// back: an editor being destroyed has no view left to ask.
+// back: a text being taken away may have nothing left to answer with.
 let listening = null;
 
 onMounted(() => {
-    listening = props.editor.view.dom;
-    props.editor.view.dom.addEventListener('click', onClick);
+    listening = props.text();
+    listening?.addEventListener('click', onClick);
 });
 
 onBeforeUnmount(() => {

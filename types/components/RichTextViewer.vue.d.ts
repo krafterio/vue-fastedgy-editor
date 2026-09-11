@@ -6,21 +6,44 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: (ObjectConstructor | StringConstructor)[];
         default: string;
     };
-    /** How to read [value] when it is markdown. */
+    /** What the document is made of, the same set the editor was given. */
+    features: {
+        type: ObjectConstructor;
+        default: () => {
+            features: import("../index.js").RichTextFeature[];
+            without(...names: any[]): /*elided*/ any;
+            withoutAll(names: any): /*elided*/ any;
+            and(added: any): /*elided*/ any;
+            readonly extensions: any[];
+            readonly views: {
+                [k: string]: any;
+            };
+            readonly menuItems: any[];
+            readonly replacedMenuItems: Set<string>;
+            clipboard(): any;
+            takes(kinds: any): boolean;
+            readonly actions: any[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
+            readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
+            readonly encoders: any;
+            readonly decoders: {};
+            readonly inlineRules: ((md: any) => void)[];
+            before(doc: any): any;
+            after(blocks: any): any;
+            holdsEnter(state: any): boolean;
+        };
+    };
+    /** How to read [value] when it is markdown, the features' own by default. */
     codec: {
         type: ObjectConstructor;
         default: null;
     };
-    /**
-     * What colours a code block, `highlightedCode` from the package unless the
-     * application brings its own. Left out, code is drawn plain.
-     */
-    highlight: {
-        type: FunctionConstructor;
+    /** The editor's three modes, so a field switched from one to the other keeps its size. */
+    maxWidth: {
+        type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
-    /** Same three modes as the editor, `auto` being the only one worth using here. */
-    maxWidth: {
+    minHeight: {
         type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
@@ -32,29 +55,55 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: BooleanConstructor;
         default: boolean;
     };
-}>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
-    mention: (...args: any[]) => void;
-}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+    /** Words the features say, over the package's, as the editor takes them. */
+    labels: {
+        type: ObjectConstructor;
+        default: () => {};
+    };
+}>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
     /** The document to draw, markdown or a decoded document. */
     value: {
         type: (ObjectConstructor | StringConstructor)[];
         default: string;
     };
-    /** How to read [value] when it is markdown. */
+    /** What the document is made of, the same set the editor was given. */
+    features: {
+        type: ObjectConstructor;
+        default: () => {
+            features: import("../index.js").RichTextFeature[];
+            without(...names: any[]): /*elided*/ any;
+            withoutAll(names: any): /*elided*/ any;
+            and(added: any): /*elided*/ any;
+            readonly extensions: any[];
+            readonly views: {
+                [k: string]: any;
+            };
+            readonly menuItems: any[];
+            readonly replacedMenuItems: Set<string>;
+            clipboard(): any;
+            takes(kinds: any): boolean;
+            readonly actions: any[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
+            readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
+            readonly encoders: any;
+            readonly decoders: {};
+            readonly inlineRules: ((md: any) => void)[];
+            before(doc: any): any;
+            after(blocks: any): any;
+            holdsEnter(state: any): boolean;
+        };
+    };
+    /** How to read [value] when it is markdown, the features' own by default. */
     codec: {
         type: ObjectConstructor;
         default: null;
     };
-    /**
-     * What colours a code block, `highlightedCode` from the package unless the
-     * application brings its own. Left out, code is drawn plain.
-     */
-    highlight: {
-        type: FunctionConstructor;
+    /** The editor's three modes, so a field switched from one to the other keeps its size. */
+    maxWidth: {
+        type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
-    /** Same three modes as the editor, `auto` being the only one worth using here. */
-    maxWidth: {
+    minHeight: {
         type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
@@ -66,14 +115,19 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: BooleanConstructor;
         default: boolean;
     };
-}>> & Readonly<{
-    onMention?: ((...args: any[]) => any) | undefined;
-}>, {
+    /** Words the features say, over the package's, as the editor takes them. */
+    labels: {
+        type: ObjectConstructor;
+        default: () => {};
+    };
+}>> & Readonly<{}>, {
     fill: boolean;
     value: string | Record<string, any>;
+    labels: Record<string, any>;
+    features: Record<string, any>;
     codec: Record<string, any>;
     maxWidth: string | number;
+    minHeight: string | number;
     maxHeight: string | number;
-    highlight: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 //# sourceMappingURL=RichTextViewer.vue.d.ts.map

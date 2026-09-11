@@ -418,6 +418,11 @@
  * which is rarely the size of the box a document puts it in. The box says how
  * big, here as everywhere: the check fills the square it ticks.
  */
+/* Read, the box is drawn the same and simply answers nothing. */
+.fe-editor [data-slot='editor-task-check']:disabled {
+    cursor: default;
+}
+
 .fe-editor [data-slot='editor-task-check'] > * {
     width: 100%;
     height: 100%;
@@ -954,4 +959,37 @@
     float: left;
     height: 0;
     pointer-events: none;
+}
+
+/*
+ * What tiptap writes into the page when an editor is created, and only then.
+ *
+ * A page that only reads documents creates none, and would lay text out without
+ * these: spaces run together, long words overflowing, ligatures the editor turns
+ * off. The same rules, under the same selectors, so the cascade gives both the
+ * same answer, and last in the sheet, where tiptap injects its own.
+ */
+.ProseMirror {
+    position: relative;
+}
+
+.ProseMirror {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    white-space: break-spaces;
+    -webkit-font-variant-ligatures: none;
+    font-variant-ligatures: none;
+    font-feature-settings: 'liga' 0;
+}
+
+.ProseMirror [contenteditable='false'] {
+    white-space: normal;
+}
+
+.ProseMirror [contenteditable='false'] [contenteditable='true'] {
+    white-space: pre-wrap;
+}
+
+.ProseMirror pre {
+    white-space: pre-wrap;
 }

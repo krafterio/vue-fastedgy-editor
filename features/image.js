@@ -1,10 +1,9 @@
 import { Plugin } from '@tiptap/pm/state';
-import { VueNodeViewRenderer } from '@tiptap/vue-3';
-
-import { h } from 'vue';
+import { markRaw } from 'vue';
 
 import ImageView from '../components/blocks/ImageView.vue';
 import ImageLightbox from '../components/surfaces/ImageLightbox.vue';
+import { useImageCarrier } from '../composables/pictures.js';
 import { SizedImage } from '../extensions/image.js';
 
 /** The scheme of a file stored beside the record, the stable form of an image. */
@@ -26,15 +25,19 @@ const REFUSED = /^(javascript|vbscript):/i;
  * alone is not: without a width there is no size to write.
  *
  * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null>,
- *   open?: (picture: { src: string, alt: string }) => void }} [options]
+ *   open?: (picture: { src: string, alt: string }) => void, viewer?: any, labels?: object }} [options]
  *   How a picture gets in. `pickFile` opens the browser's own file chooser
  *   unless an application has another way, and `store` answers with the
  *   identifier of the attachment it wrote, or `null` where the record does not
  *   exist yet. It is read **on every call**, never captured: a screen builds its
  *   features once, while the record it shows is still loading. Answering `null`
  *   leaves the picture as a `data:` URI in the text, and the next save turns it
- *   into an attachment. `open` is what a click on the picture calls, the
- *   application showing it at full size however it shows one.
+ *   into an attachment.
+ *
+ *   A click shows the picture at full size, written or read alike: in the
+ *   package's viewer, in `viewer` where the application lends a component of
+ *   its own (`picture` and `labels` in, `close` out), or through `open` where
+ *   it shows pictures some other way entirely.
  * @returns {import('./registry.js').RichTextFeature}
  */
 export function imageFeature(options = {}) {
@@ -42,12 +45,20 @@ export function imageFeature(options = {}) {
 
     return {
         name: 'image',
+
+        // Drawn by the same component whether it is written or read.
+        views: { image: ImageView },
+
+        // What a picture becomes on its way to the clipboard and back: carried
+        // inside what was copied rather than as a reference to somebody else's
+        // record, and fetched from what was pasted where it can be had.
+        clipboard: () => pictureCarriers(useImageCarrier()),
+
+        // Pictures dropped on the text are its to place.
+        takes: (kinds) => kinds.every((kind) => kind.startsWith('image/')),
+
         extensions: [
             SizedImage.extend({
-                addNodeView() {
-                    return VueNodeViewRenderer(ImageView);
-                },
-
                 addCommands() {
                     return {
                         ...this.parent?.(),
@@ -65,13 +76,14 @@ export function imageFeature(options = {}) {
                 addProseMirrorPlugins() {
                     return [pastedImages(this.editor, chosen)];
                 },
-            }).configure({ inline: false, allowBase64: true, open: options.open ?? null }),
+            }).configure({
+                inline: false,
+                allowBase64: true,
+                open: options.open ?? null,
+                viewer: markRaw(options.viewer ?? ImageLightbox),
+                labels: options.labels ?? {},
+            }),
         ],
-        // Not mounted where the application lends a viewer of its own: two
-        // lightboxes would open on the same click.
-        surfaces: options.open
-            ? []
-            : [(editor, labels) => h(ImageLightbox, { editor, labels: { ...labels, ...options.labels } })],
 
         // A picture is the one thing on the "/" menu somebody looks for on the
         // strip: it is reached far more often than a rule.
@@ -355,4 +367,50 @@ export function attachmentId(address) {
     const id = Number(address.slice(ATTACHMENT.length).split('?')[0]);
 
     return Number.isInteger(id) ? id : null;
+}
+
+/** What a picture may weigh before it is left where it lives. */
+const MAX_INLINE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * What a picture becomes on the clipboard, given what reads one.
+ *
+ * Copied, a picture travels **inside** what was copied, as a `data:` URI: an
+ * attachment belongs to the record it was stored against, and pasting elsewhere
+ * a reference to somebody else's file gives a picture that vanishes the day that
+ * record does. It is read at full size, never as the document draws it: the
+ * shown picture is optimised for the screen, and copying that would store the
+ * reduction over the original on the next save.
+ *
+ * Pasted, a picture named by a remote address is fetched to be carried inline,
+ * which the next save turns into an attachment of the record; one that cannot be
+ * had, or weighs too much, is left pointing where it pointed.
+ *
+ * @param {{ resolveImage: (src: string) => Promise<string|null>, fetchImage: (url: string) => Promise<string|null> }} carrier
+ * @returns {Record<string, { copied: Function, pasted: Function }>}
+ */
+export function pictureCarriers({ resolveImage, fetchImage }) {
+    const within = (block, src) => ({ ...block, attrs: { ...block.attrs, src } });
+
+    return {
+        image: {
+            copied(block) {
+                const src = block.attrs?.src ?? '';
+
+                return src.startsWith('data:')
+                    ? null
+                    : resolveImage(src).then((carried) => (carried ? within(block, carried) : block));
+            },
+
+            pasted(block) {
+                const src = block.attrs?.src ?? '';
+
+                return /^https?:/i.test(src)
+                    ? fetchImage(src).then((inlined) =>
+                          inlined && inlined.length <= MAX_INLINE_BYTES ? within(block, inlined) : block
+                      )
+                    : null;
+            },
+        },
+    };
 }

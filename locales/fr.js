@@ -40,6 +40,9 @@ export const fr = {
     Open: 'Ouvrir',
     Unlink: 'Dissocier',
     Language: 'Langage',
+    Auto: 'Auto',
+    Copy: 'Copier',
+    Copied: 'Copié',
     Sending: 'Envoi',
 
     Close: 'Fermer',

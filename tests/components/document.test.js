@@ -217,7 +217,7 @@ describe('DocumentEditor', () => {
     it('says how far an upload is, out loud', async () => {
         let told;
         const page = await documentOf({
-            cover: '',
+            cover: 'notes/15/cover.png',
             pickFile: async () => new File([''], 'a.png', { type: 'image/png' }),
             storeCover: (file, onProgress) =>
                 new Promise((resolve) => {
@@ -243,7 +243,7 @@ describe('DocumentEditor', () => {
     it('says when a cover was chosen, and stores it before saying so', async () => {
         const store = vi.fn(async () => 'notes/15/new.png');
         const page = await documentOf({
-            cover: '',
+            cover: 'notes/15/cover.png',
             pickFile: async () => new File([''], 'a.png', { type: 'image/png' }),
             storeCover: store,
         });
@@ -257,15 +257,37 @@ describe('DocumentEditor', () => {
 });
 
 describe('DocumentViewer', () => {
-    it('keeps the column and the cover, and scrolls for nobody', () => {
+    it('keeps the column and the cover, and nothing to write with', () => {
         const page = mount(DocumentViewer, {
-            props: { value: '# titre', codec, cover: 'notes/15/cover.png' },
+            props: { value: '# titre', features, cover: 'notes/15/cover.png' },
         });
 
         expect(page.find('[data-slot="document-column"] h1').text()).toBe('titre');
         expect(page.find('[data-slot="document-cover"]').exists()).toBe(true);
-        expect(page.find('[data-slot="document-scroll"]').exists()).toBe(false);
         expect(page.find('[data-slot="document-gutter"]').exists()).toBe(false);
+    });
+
+    it('is laid out on the elements the editor is laid out on', async () => {
+        const slots = (root) =>
+            [...root.querySelectorAll('[data-slot]')]
+                .map((element) => element.getAttribute('data-slot'))
+                .filter((slot) => slot.startsWith('document-') && slot !== 'document-gutter');
+
+        const written = await documentOf({ modelValue: '# titre', minHeight: '24rem' });
+        const read = mount(DocumentViewer, {
+            props: { value: '# titre', features, minHeight: '24rem' },
+            attachTo: document.body,
+        });
+
+        mounted.push(read);
+
+        // The same chain, down to the blocks, and the same size on the same
+        // element: switched from one to the other, the page does not move.
+        expect(slots(read.element)).toEqual(slots(written.element));
+        expect(read.find('[data-slot="document-scroll"]').attributes('style')).toBe(
+            written.find('[data-slot="document-scroll"]').attributes('style')
+        );
+        expect(read.element.style.containerType).toBe(written.element.style.containerType);
     });
 });
 
@@ -333,5 +355,15 @@ describe('the three height modes of a page', () => {
         const page = await documentOf({ modelValue: 'du texte', maxHeight: 400 });
 
         expect(page.find('[data-slot="editor-content"]').attributes('style')).toBeUndefined();
+    });
+});
+
+describe('a page without a cover', () => {
+    it('keeps no room for one, even where one could be added', async () => {
+        // As on mobile: a band offered to add a cover is a page that moves when
+        // it is switched to reading.
+        const page = await documentOf({ cover: '', pickFile: async () => null });
+
+        expect(page.find('[data-slot="document-cover"]').exists()).toBe(false);
     });
 });

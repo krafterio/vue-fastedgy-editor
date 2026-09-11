@@ -48,6 +48,7 @@ export function tableFeature(options = {}) {
     return {
         name: 'table',
         extensions: [Table.configure({ resizable: true }), TableRow, TableHeader, TableCell, TableDuplication],
+
         surfaces: [(editor, labels) => h(TableHandles, { editor, labels: { ...labels, ...options.labels } })],
 
         // Beside the blocks a button already makes: a table is reached about as

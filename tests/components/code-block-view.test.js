@@ -2,15 +2,18 @@ import { EditorContent, useEditor } from '@tiptap/vue-3';
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { describe, expect, it } from 'vitest';
+import javascript from 'highlight.js/lib/languages/javascript';
+import python from 'highlight.js/lib/languages/python';
 
 import { codeBlockFeature } from '../../features/code-block.js';
-import { coreExtensions } from '../../extensions/schema.js';
+import { createFeatures } from '../../features/registry.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 
-const mountEditor = (features, content) =>
+const mountEditor = (feature, content) =>
     mount(
         defineComponent({
             setup() {
-                const editor = useEditor({ extensions: [...coreExtensions(), ...features.extensions], content });
+                const editor = useEditor({ extensions: richTextExtensions(createFeatures([feature])), content });
 
                 return () => h('div', editor.value ? [h(EditorContent, { editor: editor.value })] : []);
             },
@@ -48,5 +51,60 @@ describe('CodeBlockView', () => {
         first.unmount();
 
         expect(second.find('[data-slot="editor-code-block"]').exists()).toBe(true);
+    });
+});
+
+describe('the language of a code block, as on mobile', () => {
+    const block = (text, language = null) => ({
+        type: 'doc',
+        content: [{ type: 'codeBlock', attrs: { language }, content: [{ type: 'text', text }] }],
+    });
+
+    const settled = async () => {
+        await nextTick();
+        await nextTick();
+    };
+
+    const extensionOf = (feature) => feature.extensions.find((extension) => extension.name === 'codeBlock');
+
+    it('offers every language highlight.js knows, each by its name', () => {
+        const offered = extensionOf(codeBlockFeature()).options.languages();
+
+        expect(offered.length).toBeGreaterThan(150);
+        expect(offered).toContainEqual({ value: 'javascript', label: 'JavaScript' });
+    });
+
+    it('keeps only those an application keeps', () => {
+        const feature = codeBlockFeature({ languages: { javascript, python } });
+
+        expect(
+            extensionOf(feature)
+                .options.languages()
+                .map((language) => language.value)
+        ).toEqual(['javascript', 'python']);
+    });
+
+    it('says what guessing made of a block that names no language', async () => {
+        const mounted = mountEditor(codeBlockFeature(), block('const a = () => { return 1; };\nconsole.log(a());'));
+
+        await settled();
+
+        expect(mounted.get('[data-slot="editor-picker"]').text()).toBe('Auto · JavaScript');
+    });
+
+    it('says the language a block names, by its name', async () => {
+        const mounted = mountEditor(codeBlockFeature(), block('print(1)', 'python'));
+
+        await settled();
+
+        expect(mounted.get('[data-slot="editor-picker"]').text()).toBe('Python');
+    });
+
+    it('colours the code with the grammar it names', async () => {
+        const mounted = mountEditor(codeBlockFeature(), block('def a(): pass', 'python'));
+
+        await settled();
+
+        expect(mounted.find('pre code span.hljs-keyword').text()).toBe('def');
     });
 });

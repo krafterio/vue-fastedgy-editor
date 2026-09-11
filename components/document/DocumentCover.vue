@@ -91,8 +91,12 @@ const actions = computed(() => [
     <!--
       Edge to edge and above the header rather than on the column, and it scrolls
       with the rest instead of staying pinned.
+
+      Only where there is a cover, as on mobile: an empty band offered to add one
+      is a page that moves when it is switched to reading. A first cover is the
+      application's to offer.
     -->
-    <div v-if="path || (editable && pickFile)" ref="band" data-slot="document-cover">
+    <div v-if="path" ref="band" data-slot="document-cover">
         <img v-if="source" v-fetcher-src.lazy :src="source" alt="" />
 
         <!--

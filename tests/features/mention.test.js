@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
-import { coreExtensions } from '../../extensions/schema.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 
 import { mentionFeature, pathAddressing } from '../../features/mention.js';
 import { createFeatures } from '../../features/registry.js';
@@ -52,7 +52,7 @@ describe('while a mention is being written', () => {
     const editorOf = (feature) =>
         new Editor({
             element: document.createElement('div'),
-            extensions: [...coreExtensions(), ...feature.extensions],
+            extensions: richTextExtensions(createFeatures([feature])),
             content: '<p></p>',
         });
 

@@ -1,6 +1,5 @@
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
-import { VueNodeViewRenderer } from '@tiptap/vue-3';
 
 import TaskItemView from '../components/blocks/TaskItemView.vue';
 
@@ -23,14 +22,11 @@ import TaskItemView from '../components/blocks/TaskItemView.vue';
 export function todoListFeature() {
     return {
         name: 'todoList',
-        extensions: [
-            TaskList,
-            TaskItem.extend({
-                addNodeView() {
-                    return VueNodeViewRenderer(TaskItemView);
-                },
-            }).configure({ nested: false }),
-        ],
+
+        // Drawn by the same component whether it is written or read.
+        views: { taskItem: TaskItemView },
+
+        extensions: [TaskList, TaskItem.configure({ nested: false })],
 
         // The block is the feature's, so what offers it is too: the core menu
         // knows nothing of a list that may not be mounted.

@@ -142,6 +142,10 @@ export const defaultRichTextControls: Readonly<{
             type: FunctionConstructor;
             default: null;
         };
+        shown: {
+            type: StringConstructor;
+            default: string;
+        };
     }>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
         label: {
             type: StringConstructor;
@@ -159,11 +163,16 @@ export const defaultRichTextControls: Readonly<{
             type: FunctionConstructor;
             default: null;
         };
+        shown: {
+            type: StringConstructor;
+            default: string;
+        };
     }>> & Readonly<{}>, {
         label: string;
         options: unknown[];
         selected: string | number | null;
         onSelect: Function;
+        shown: string;
     }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
     button: {
         new (...args: any[]): import("vue").CreateComponentPublicInstanceWithMixins<Readonly<import("vue").ExtractPropTypes<{

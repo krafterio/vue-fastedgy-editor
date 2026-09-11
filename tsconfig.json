@@ -25,5 +25,5 @@
         "types": []
     },
     "include": ["**/*.js", "**/*.vue"],
-    "exclude": ["node_modules", "types", "tests", "vitest.config.js", "vitest.setup.js"]
+    "exclude": ["node_modules", "types", "tests", "vitest.config.js", "vitest.browser.config.js", "vitest.setup.js"]
 }

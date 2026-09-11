@@ -15,10 +15,16 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
             withoutAll(names: any): /*elided*/ any;
             and(added: any): /*elided*/ any;
             readonly extensions: any[];
+            readonly views: {
+                [k: string]: any;
+            };
             readonly menuItems: any[];
             readonly replacedMenuItems: Set<string>;
+            clipboard(): any;
+            takes(kinds: any): boolean;
             readonly actions: any[];
             readonly surfaces: ((editor: any, labels: object) => any)[];
+            readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
@@ -47,10 +53,16 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
             withoutAll(names: any): /*elided*/ any;
             and(added: any): /*elided*/ any;
             readonly extensions: any[];
+            readonly views: {
+                [k: string]: any;
+            };
             readonly menuItems: any[];
             readonly replacedMenuItems: Set<string>;
+            clipboard(): any;
+            takes(kinds: any): boolean;
             readonly actions: any[];
             readonly surfaces: ((editor: any, labels: object) => any)[];
+            readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];

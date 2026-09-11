@@ -295,7 +295,7 @@ describe('a picture dragged over the page', () => {
     afterEach(() => window.dispatchEvent(new Event('drop')));
 
     it('says the blocks would take it, so nothing else has to be guessed at', async () => {
-        const mounted = await editorOf({ modelValue: 'du texte' });
+        const mounted = await editorOf({ modelValue: 'du texte', features: createFeatures([imageFeature()]) });
         const body = mounted.get('[data-slot="editor-body"]');
 
         expect(body.attributes('data-offered')).toBeUndefined();
@@ -304,6 +304,15 @@ describe('a picture dragged over the page', () => {
         await nextTick();
 
         expect(mounted.get('[data-slot="editor-body"]').attributes('data-offered')).toBe('true');
+    });
+
+    it('takes no picture where no feature places one', async () => {
+        const mounted = await editorOf({ modelValue: 'du texte', features: createFeatures([]) });
+
+        window.dispatchEvent(carrying('image/png'));
+        await nextTick();
+
+        expect(mounted.get('[data-slot="editor-body"]').attributes('data-offered')).toBeUndefined();
     });
 
     it('says nothing of a file it would not take', async () => {

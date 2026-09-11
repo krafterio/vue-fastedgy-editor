@@ -16,10 +16,11 @@ export function looksLikeMarkdown(text: string): boolean;
  * bare words travel, and everything copied comes back plain, even into the
  * editor it was copied from.
  *
- * A picture travels **inside** what was copied, as a `data:` URI: an attachment
- * belongs to the record it was stored against, and pasting elsewhere a reference
- * to somebody else's file gives a picture that vanishes the day that record
- * does. What lands is carried along, and the next save stores it where it lands.
+ * What a feature carries along travels with it: a node may leave for the
+ * clipboard as something else than it is held, and come back in as something
+ * else than it was pasted — a picture carried inside what was copied rather
+ * than as a reference to somebody else's record. Which nodes, and what they
+ * become, is the feature's to say, cf `carriers`.
  *
  * **Pasting** reads markdown as blocks, wherever it was copied from. There is no
  * shortcut for what came out of an editor of ours: the markdown is the document,
@@ -27,17 +28,9 @@ export function looksLikeMarkdown(text: string): boolean;
  *
  * @param {object} options
  * @param {{ encode: (doc: object) => string, decode: (source: string) => object }} options.codec
- * @param {(url: string) => Promise<string|null>} [options.fetchImage]
- *   Answers with a `data:` URI, which is what turns a picture named in pasted
- *   markdown into an attachment of the record on the next save. A picture that
- *   cannot be had is left pointing where it pointed.
- * @param {(src: string) => Promise<string|null>} [options.resolveImage]
- *   The same, for copying: what `attachment:15` reads as, so a picture leaves
- *   the document with what was copied rather than as a reference to a record.
- *   It must answer with the **original**, never with what the document draws:
- *   the shown picture is optimised for the screen it is shown on, and copying
- *   that would store the reduction over the original on the next save.
- *   `useImageCarrier()` does both correctly.
+ * @param {Record<string, { copied?: (node: object) => Promise<object>|null, pasted?: (node: object) => Promise<object>|null }>} [options.carriers]
+ *   By node type, what a node becomes on its way out and on its way in, as
+ *   `features.clipboard()` answers; null where it travels as it is.
  * @returns {any}
  */
 export function richTextClipboard(options: {
@@ -45,8 +38,10 @@ export function richTextClipboard(options: {
         encode: (doc: object) => string;
         decode: (source: string) => object;
     };
-    fetchImage?: ((url: string) => Promise<string | null>) | undefined;
-    resolveImage?: ((src: string) => Promise<string | null>) | undefined;
+    carriers?: Record<string, {
+        copied?: (node: object) => Promise<object> | null;
+        pasted?: (node: object) => Promise<object> | null;
+    }> | undefined;
 }): any;
 /**
  * Pastes what the clipboard holds, asked for out loud.
@@ -57,8 +52,8 @@ export function richTextClipboard(options: {
  * it is pressed, which is the one moment somebody has said they want this.
  *
  * What comes back goes through the very same handlers a keyboard paste goes
- * through, features included, so a picture or a piece of markdown lands exactly
- * as it would have.
+ * through, features included, so whatever was copied lands exactly as it would
+ * have.
  *
  * @param {any} editor
  * @returns {Promise<'pasted'|'empty'|'refused'|'unsupported'>} What happened,

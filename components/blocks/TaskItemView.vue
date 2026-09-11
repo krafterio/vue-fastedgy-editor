@@ -1,7 +1,8 @@
 <script setup>
-import { NodeViewContent, NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
+import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
 
 import { useRichTextIcons } from '../../composables/icons.js';
+import { BlockContent } from '../internal/BlockContent.js';
 
 const props = defineProps(nodeViewProps);
 
@@ -29,6 +30,6 @@ const toggle = () => props.updateAttributes({ checked: !props.node.attrs.checked
             <component :is="icon('check')" v-if="node.attrs.checked && icon('check')" />
         </button>
 
-        <NodeViewContent data-slot="editor-task-body" />
+        <BlockContent data-slot="editor-task-body" />
     </NodeViewWrapper>
 </template>

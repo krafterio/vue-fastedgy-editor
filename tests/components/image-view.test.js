@@ -3,14 +3,15 @@ import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { describe, expect, it } from 'vitest';
 
-import { coreExtensions } from '../../extensions/schema.js';
+import { createFeatures } from '../../features/registry.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 import { imageFeature } from '../../features/image.js';
 
 const mountEditor = (content) =>
     mount(
         defineComponent({
             setup() {
-                const editor = useEditor({ extensions: [...coreExtensions(), ...imageFeature().extensions], content });
+                const editor = useEditor({ extensions: richTextExtensions(createFeatures([imageFeature()])), content });
 
                 return () => h('div', editor.value ? [h(EditorContent, { editor: editor.value })] : []);
             },

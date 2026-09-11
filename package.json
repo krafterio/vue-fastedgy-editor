@@ -18,10 +18,12 @@
         "build": "vue-tsc -p tsconfig.json",
         "lint": "npm run build && oxlint . --type-aware",
         "fix": "oxlint --fix",
-        "format": "oxfmt --write index.js labels.js icons components composables extensions features locales markdown menu render tests vitest.config.js",
+        "format": "oxfmt --write index.js labels.js icons components composables extensions features locales markdown menu render tests vitest.config.js vitest.browser.config.js",
         "fcl": "npm run fix && npm run format && npm run lint",
-        "test": "vitest run",
-        "test:watch": "vitest"
+        "test": "vitest run && vitest run --config vitest.browser.config.js",
+        "test:watch": "vitest",
+        "test:unit": "vitest run",
+        "test:browser": "vitest run --config vitest.browser.config.js"
     },
     "dependencies": {
         "@tiptap/core": "^3.31.0",
@@ -29,6 +31,7 @@
         "@tiptap/extension-bold": "^3.31.0",
         "@tiptap/extension-bullet-list": "^3.31.0",
         "@tiptap/extension-code": "^3.31.0",
+        "@tiptap/extension-code-block": "^3.31.3",
         "@tiptap/extension-code-block-lowlight": "^3.31.3",
         "@tiptap/extension-document": "^3.31.0",
         "@tiptap/extension-drag-handle-vue-3": "^3.31.3",
@@ -55,23 +58,27 @@
         "@tiptap/pm": "^3.31.0",
         "@tiptap/suggestion": "^3.31.3",
         "@tiptap/vue-3": "^3.31.0",
+        "highlight.js": "~11.11.0",
         "lowlight": "^3.3.0",
         "markdown-it": "^15.0.0"
     },
     "peerDependencies": {
+        "@lucide/vue": "^1.0.0",
         "reka-ui": "^2.10.0",
         "vue": "^3.5.0",
-        "vue-fastedgy": "*",
-        "@lucide/vue": "^1.0.0"
+        "vue-fastedgy": "*"
     },
     "devDependencies": {
         "@types/node": "^26.5.0",
         "@vitejs/plugin-vue": "^6.0.8",
+        "@vitest/browser-playwright": "^5.0.0",
         "@vue/test-utils": "^2.4.4",
         "jsdom": "^30.0.1",
         "oxfmt": "^0.67.0",
         "oxlint": "^1.82.0",
         "oxlint-tsgolint": "^7.0.2001",
+        "pinia": "^4.0.3",
+        "playwright": "^1.63.0",
         "reka-ui": "^2.10.4",
         "typescript": "^6.0.3",
         "vitest": "^5.0.0",
@@ -84,7 +91,8 @@
     },
     "allowScripts": {
         "esbuild": false,
-        "fsevents": false
+        "fsevents": false,
+        "vue-demi": false
     },
     "peerDependenciesMeta": {
         "@lucide/vue": {

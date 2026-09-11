@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
-import { coreExtensions } from '../../extensions/schema.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 
 import { createFeatures } from '../../features/registry.js';
 import { encodeTable, tableFeature } from '../../features/table.js';
@@ -74,7 +74,7 @@ describe('duplicating', () => {
     const editorOf = (html) =>
         new Editor({
             element: document.createElement('div'),
-            extensions: [...coreExtensions(), ...tableFeature().extensions],
+            extensions: richTextExtensions(createFeatures([tableFeature()])),
             content: html,
         });
 

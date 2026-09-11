@@ -13,10 +13,16 @@
  * @typedef {object} RichTextFeature
  * @property {string} name
  * @property {any[]} [extensions] - What it adds to the schema
+ * @property {Record<string, any>} [views] - By node type, the component drawing it, written or read
  * @property {number} [menuGroup] - Where its "/" entries sit, lowest first
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
+ * @property {(kinds: string[]) => boolean} [takes] - Whether files of these kinds, dropped, are its
+ * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
+ *   text, written or read
+ * @property {() => Record<string, { copied?: Function, pasted?: Function }>} [clipboard] - What its nodes become
+ *   on the clipboard, asked for while an editor is set up
  * @property {Array<(editor: any, labels: object) => any>} [surfaces] - What floats above the editor, each handed the
  *   editor it belongs to and the words that editor was given
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
@@ -74,9 +80,31 @@ export function createFeatures(features?: RichTextFeature[]): {
         /** The same set plus [added], which win any node type they share with it. */
         and(added: any): /*elided*/ any;
         readonly extensions: any[];
+        /**
+         * By node type, the component that draws it.
+         *
+         * The same one in the editor, where it is mounted as a node view, and in
+         * the viewer, where it is mounted with nothing to edit: a picture or a
+         * checkbox reads the same written or displayed because it is one
+         * component, not two kept alike. The last feature declared wins.
+         */
+        readonly views: {
+            [k: string]: any;
+        };
         /** By group, and within one by the order they were declared in. */
         readonly menuItems: any[];
         readonly replacedMenuItems: Set<string>;
+        /**
+         * By node type, what a node becomes on its way to the clipboard and
+         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+         * node or null where it travels as it is.
+         *
+         * Asked for while an editor is being set up: what carries a file along
+         * may need what the application provides, the storage client first.
+         */
+        clipboard(): any;
+        /** Whether a feature takes files of these kinds, dropped on the text. */
+        takes(kinds: any): boolean;
         readonly actions: any[];
         /**
          * What floats above an editor, mounted by that editor and by nobody
@@ -87,6 +115,14 @@ export function createFeatures(features?: RichTextFeature[]): {
          * one that has the focus is rarely the one that was asked.
          */
         readonly surfaces: ((editor: any, labels: object) => any)[];
+        /**
+         * What floats over the text whether it is written or read, mounted by
+         * the editor and by the viewer alike.
+         *
+         * Each one is handed the element the text is drawn in, as a getter, and
+         * the words: a card a mention opens is the same card in both.
+         */
+        readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
         readonly encoders: any;
         /**
          * By token type, the last feature declared offered first.
@@ -113,9 +149,31 @@ export function createFeatures(features?: RichTextFeature[]): {
         /** The same set plus [added], which win any node type they share with it. */
         and(added: any): /*elided*/ any;
         readonly extensions: any[];
+        /**
+         * By node type, the component that draws it.
+         *
+         * The same one in the editor, where it is mounted as a node view, and in
+         * the viewer, where it is mounted with nothing to edit: a picture or a
+         * checkbox reads the same written or displayed because it is one
+         * component, not two kept alike. The last feature declared wins.
+         */
+        readonly views: {
+            [k: string]: any;
+        };
         /** By group, and within one by the order they were declared in. */
         readonly menuItems: any[];
         readonly replacedMenuItems: Set<string>;
+        /**
+         * By node type, what a node becomes on its way to the clipboard and
+         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+         * node or null where it travels as it is.
+         *
+         * Asked for while an editor is being set up: what carries a file along
+         * may need what the application provides, the storage client first.
+         */
+        clipboard(): any;
+        /** Whether a feature takes files of these kinds, dropped on the text. */
+        takes(kinds: any): boolean;
         readonly actions: any[];
         /**
          * What floats above an editor, mounted by that editor and by nobody
@@ -126,6 +184,14 @@ export function createFeatures(features?: RichTextFeature[]): {
          * one that has the focus is rarely the one that was asked.
          */
         readonly surfaces: ((editor: any, labels: object) => any)[];
+        /**
+         * What floats over the text whether it is written or read, mounted by
+         * the editor and by the viewer alike.
+         *
+         * Each one is handed the element the text is drawn in, as a getter, and
+         * the words: a card a mention opens is the same card in both.
+         */
+        readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
         readonly encoders: any;
         /**
          * By token type, the last feature declared offered first.
@@ -152,9 +218,31 @@ export function createFeatures(features?: RichTextFeature[]): {
         withoutAll(names: any): /*elided*/ any;
         and(added: any): /*elided*/ any;
         readonly extensions: any[];
+        /**
+         * By node type, the component that draws it.
+         *
+         * The same one in the editor, where it is mounted as a node view, and in
+         * the viewer, where it is mounted with nothing to edit: a picture or a
+         * checkbox reads the same written or displayed because it is one
+         * component, not two kept alike. The last feature declared wins.
+         */
+        readonly views: {
+            [k: string]: any;
+        };
         /** By group, and within one by the order they were declared in. */
         readonly menuItems: any[];
         readonly replacedMenuItems: Set<string>;
+        /**
+         * By node type, what a node becomes on its way to the clipboard and
+         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+         * node or null where it travels as it is.
+         *
+         * Asked for while an editor is being set up: what carries a file along
+         * may need what the application provides, the storage client first.
+         */
+        clipboard(): any;
+        /** Whether a feature takes files of these kinds, dropped on the text. */
+        takes(kinds: any): boolean;
         readonly actions: any[];
         /**
          * What floats above an editor, mounted by that editor and by nobody
@@ -165,6 +253,14 @@ export function createFeatures(features?: RichTextFeature[]): {
          * one that has the focus is rarely the one that was asked.
          */
         readonly surfaces: ((editor: any, labels: object) => any)[];
+        /**
+         * What floats over the text whether it is written or read, mounted by
+         * the editor and by the viewer alike.
+         *
+         * Each one is handed the element the text is drawn in, as a getter, and
+         * the words: a card a mention opens is the same card in both.
+         */
+        readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
         readonly encoders: any;
         /**
          * By token type, the last feature declared offered first.
@@ -183,9 +279,31 @@ export function createFeatures(features?: RichTextFeature[]): {
         holdsEnter(state: any): boolean;
     };
     readonly extensions: any[];
+    /**
+     * By node type, the component that draws it.
+     *
+     * The same one in the editor, where it is mounted as a node view, and in
+     * the viewer, where it is mounted with nothing to edit: a picture or a
+     * checkbox reads the same written or displayed because it is one
+     * component, not two kept alike. The last feature declared wins.
+     */
+    readonly views: {
+        [k: string]: any;
+    };
     /** By group, and within one by the order they were declared in. */
     readonly menuItems: any[];
     readonly replacedMenuItems: Set<string>;
+    /**
+     * By node type, what a node becomes on its way to the clipboard and
+     * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+     * node or null where it travels as it is.
+     *
+     * Asked for while an editor is being set up: what carries a file along
+     * may need what the application provides, the storage client first.
+     */
+    clipboard(): any;
+    /** Whether a feature takes files of these kinds, dropped on the text. */
+    takes(kinds: any): boolean;
     readonly actions: any[];
     /**
      * What floats above an editor, mounted by that editor and by nobody
@@ -196,6 +314,14 @@ export function createFeatures(features?: RichTextFeature[]): {
      * one that has the focus is rarely the one that was asked.
      */
     readonly surfaces: ((editor: any, labels: object) => any)[];
+    /**
+     * What floats over the text whether it is written or read, mounted by
+     * the editor and by the viewer alike.
+     *
+     * Each one is handed the element the text is drawn in, as a getter, and
+     * the words: a card a mention opens is the same card in both.
+     */
+    readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
     readonly encoders: any;
     /**
      * By token type, the last feature declared offered first.
@@ -232,6 +358,10 @@ export type RichTextFeature = {
      */
     extensions?: any[] | undefined;
     /**
+     * - By node type, the component drawing it, written or read
+     */
+    views?: Record<string, any> | undefined;
+    /**
      * - Where its "/" entries sit, lowest first
      */
     menuGroup?: number | undefined;
@@ -241,6 +371,23 @@ export type RichTextFeature = {
     replacesMenuItems?: string[] | undefined;
     menuItems?: any[] | undefined;
     actions?: any[] | undefined;
+    /**
+     * - Whether files of these kinds, dropped, are its
+     */
+    takes?: ((kinds: string[]) => boolean) | undefined;
+    /**
+     * - What floats over the
+     * text, written or read
+     */
+    readingSurfaces?: ((text: () => Element | null, labels: object) => any)[] | undefined;
+    /**
+     * - What its nodes become
+     * on the clipboard, asked for while an editor is set up
+     */
+    clipboard?: (() => Record<string, {
+        copied?: Function;
+        pasted?: Function;
+    }>) | undefined;
     /**
      * - What floats above the editor, each handed the
      * editor it belongs to and the words that editor was given

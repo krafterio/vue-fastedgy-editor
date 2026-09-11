@@ -16,4 +16,28 @@
 export function coreExtensions(options?: {
     history?: boolean;
 }): any[];
+/**
+ * A node that can be read and not written: no rule turning what is typed into
+ * one, no shortcut, nothing pasted becoming one, a code editor's clipboard
+ * included. What draws it stays, its colours among them.
+ *
+ * @param {any} extension
+ * @returns {any}
+ */
+export function withoutAuthoring(extension: any): any;
+/**
+ * What a rich text of [features] is made of, the one list the editor and the
+ * viewer are both built from, a page's included.
+ *
+ * The core's nodes, less those a feature brings in their place, and each node a
+ * feature draws with a component drawn by it. A feature says each of these once,
+ * in the registry, and they reach the editor and the viewer alike.
+ *
+ * @param {ReturnType<import('../features/registry.js').createFeatures>} features
+ * @param {{ history?: boolean }} [options]
+ * @returns {any[]}
+ */
+export function richTextExtensions(features: ReturnType<typeof import("../index.js").createFeatures>, options?: {
+    history?: boolean;
+}): any[];
 //# sourceMappingURL=schema.d.ts.map

@@ -13,25 +13,26 @@ export const SizedImage = Image.extend({
             ...this.parent?.(),
 
             /**
-             * What opens a picture at full size, which is the application's:
-             * a document knows what it holds, not what a screen does with it.
-             * Called with the address as it is stored, `attachment:15` and all.
+             * What opens a picture at full size, where the application shows
+             * one its own way. Called with the address as it is stored,
+             * `attachment:15` and all.
              *
              * @type {((picture: { src: string, alt: string }) => void) | null}
              */
             open: null,
-        };
-    },
 
-    /**
-     * Where the lightbox posts the way to open a picture.
-     *
-     * A node view and a surface are two subtrees that never meet, so what one
-     * offers the other has to be left somewhere both can reach, and the
-     * extension is that somewhere.
-     */
-    addStorage() {
-        return { ...this.parent?.(), open: null };
+            /**
+             * The component a picture is shown at full size in, mounted by the
+             * picture itself when it is clicked, written or read: `picture`
+             * (`{ src, alt }`) and `labels` in, `close` out.
+             *
+             * @type {any}
+             */
+            viewer: null,
+
+            /** The words the viewer says, over the package's. */
+            labels: {},
+        };
     },
 
     /**

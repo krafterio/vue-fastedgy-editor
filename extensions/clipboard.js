@@ -29,9 +29,6 @@ const SPAN_MARKERS = [
     /`[^`\n]+`/,
 ];
 
-/** What a picture may weigh before it is left where it lives. */
-const MAX_INLINE_IMAGE_BYTES = 10 * 1024 * 1024;
-
 /**
  * Whether [text] reads as markdown, and so deserves to arrive as blocks rather
  * than as the characters it is made of.
@@ -61,10 +58,11 @@ export function looksLikeMarkdown(text) {
  * bare words travel, and everything copied comes back plain, even into the
  * editor it was copied from.
  *
- * A picture travels **inside** what was copied, as a `data:` URI: an attachment
- * belongs to the record it was stored against, and pasting elsewhere a reference
- * to somebody else's file gives a picture that vanishes the day that record
- * does. What lands is carried along, and the next save stores it where it lands.
+ * What a feature carries along travels with it: a node may leave for the
+ * clipboard as something else than it is held, and come back in as something
+ * else than it was pasted — a picture carried inside what was copied rather
+ * than as a reference to somebody else's record. Which nodes, and what they
+ * become, is the feature's to say, cf `carriers`.
  *
  * **Pasting** reads markdown as blocks, wherever it was copied from. There is no
  * shortcut for what came out of an editor of ours: the markdown is the document,
@@ -72,21 +70,13 @@ export function looksLikeMarkdown(text) {
  *
  * @param {object} options
  * @param {{ encode: (doc: object) => string, decode: (source: string) => object }} options.codec
- * @param {(url: string) => Promise<string|null>} [options.fetchImage]
- *   Answers with a `data:` URI, which is what turns a picture named in pasted
- *   markdown into an attachment of the record on the next save. A picture that
- *   cannot be had is left pointing where it pointed.
- * @param {(src: string) => Promise<string|null>} [options.resolveImage]
- *   The same, for copying: what `attachment:15` reads as, so a picture leaves
- *   the document with what was copied rather than as a reference to a record.
- *   It must answer with the **original**, never with what the document draws:
- *   the shown picture is optimised for the screen it is shown on, and copying
- *   that would store the reduction over the original on the next save.
- *   `useImageCarrier()` does both correctly.
+ * @param {Record<string, { copied?: (node: object) => Promise<object>|null, pasted?: (node: object) => Promise<object>|null }>} [options.carriers]
+ *   By node type, what a node becomes on its way out and on its way in, as
+ *   `features.clipboard()` answers; null where it travels as it is.
  * @returns {any}
  */
 export function richTextClipboard(options) {
-    const { codec, fetchImage = null, resolveImage = null } = options;
+    const { codec, carriers = {} } = options;
 
     return Extension.create({
         name: 'richTextClipboard',
@@ -101,8 +91,8 @@ export function richTextClipboard(options) {
                             codec.encode({ type: 'doc', content: slice.content.toJSON() ?? [] }).trimEnd(),
 
                         handleDOMEvents: {
-                            copy: (view, event) => write(view, event, { codec, resolveImage }),
-                            cut: (view, event) => write(view, event, { codec, resolveImage, andDelete: true }),
+                            copy: (view, event) => write(view, event, { codec, carriers }),
+                            cut: (view, event) => write(view, event, { codec, carriers, andDelete: true }),
                         },
 
                         handlePaste(view, event) {
@@ -119,7 +109,7 @@ export function richTextClipboard(options) {
                             }
 
                             event.preventDefault();
-                            void insert(editor, document, fetchImage);
+                            void insert(editor, document, carriers);
 
                             return true;
                         },
@@ -133,13 +123,13 @@ export function richTextClipboard(options) {
 /**
  * Writes what was selected on the clipboard, under both shapes.
  *
- * The pictures are read first where they can be, which is why the write is
- * asynchronous where there are any: the browser is handed promises rather than
+ * What a feature carries is read first where it can be, which is why the write
+ * is asynchronous where there is any: the browser is handed promises rather than
  * strings, and the clipboard fills once they answer. Where nothing has to be
  * read, or where the browser will not take a promise, the two shapes are written
- * on the event itself and the pictures leave as the addresses they are.
+ * on the event itself and every node leaves as it is.
  */
-function write(view, event, { codec, resolveImage, andDelete = false }) {
+function write(view, event, { codec, carriers, andDelete = false }) {
     const slice = view.state.selection.content();
 
     if (slice.size === 0) {
@@ -152,11 +142,11 @@ function write(view, event, { codec, resolveImage, andDelete = false }) {
 
     event.preventDefault();
 
-    const carried = resolveImage && document.content.some((block) => isCarried(block));
+    const carried = document.content.map((block) => carriers[block.type]?.copied?.(block) ?? null);
 
-    if (carried && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-        const written = withCarriedPictures(document, resolveImage).then(
-            (whole) => new Blob([codec.encode(whole).trimEnd()], { type: 'text/plain' })
+    if (carried.some(Boolean) && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+        const written = Promise.all(carried.map((block, at) => block ?? document.content[at])).then(
+            (content) => new Blob([codec.encode({ ...document, content }).trimEnd()], { type: 'text/plain' })
         );
 
         void navigator.clipboard
@@ -172,28 +162,6 @@ function write(view, event, { codec, resolveImage, andDelete = false }) {
     }
 
     return true;
-}
-
-/** Whether a block is a picture that lives somewhere else. */
-function isCarried(block) {
-    return block.type === 'image' && !(block.attrs?.src ?? '').startsWith('data:');
-}
-
-/** The same document, its pictures carried inside it. */
-async function withCarriedPictures(document, resolveImage) {
-    const content = await Promise.all(
-        document.content.map(async (block) => {
-            if (!isCarried(block)) {
-                return block;
-            }
-
-            const carried = await resolveImage(block.attrs.src);
-
-            return carried ? { ...block, attrs: { ...block.attrs, src: carried } } : block;
-        })
-    );
-
-    return { ...document, content };
 }
 
 /** What a word processor pastes as formatted text. */
@@ -214,8 +182,8 @@ function htmlOf(view, slice) {
  * it is pressed, which is the one moment somebody has said they want this.
  *
  * What comes back goes through the very same handlers a keyboard paste goes
- * through, features included, so a picture or a piece of markdown lands exactly
- * as it would have.
+ * through, features included, so whatever was copied lands exactly as it would
+ * have.
  *
  * @param {any} editor
  * @returns {Promise<'pasted'|'empty'|'refused'|'unsupported'>} What happened,
@@ -272,7 +240,9 @@ async function heldItems(clipboard) {
                 held.text = await blob.text();
             } else if (type === 'text/html') {
                 held.html = await blob.text();
-            } else if (type.startsWith('image/')) {
+            } else {
+                // A file, whatever it holds: which ones anything is made of is
+                // for the features to say, through the paste they handle.
                 held.files.push(new File([blob], 'pasted', { type }));
             }
         }
@@ -281,39 +251,18 @@ async function heldItems(clipboard) {
     return held;
 }
 
-async function insert(editor, document, fetchImage) {
+async function insert(editor, document, carriers) {
+    const blocks = document.content ?? [];
+
+    // What a feature brings along from what was pasted, a picture fetched to be
+    // carried inside the document, where it can be had; and nothing waited for
+    // where there is nothing to bring.
+    const brought = blocks.map((block) => carriers[block.type]?.pasted?.(block) ?? null);
+    const content = brought.some(Boolean) ? await Promise.all(brought.map((block, at) => block ?? blocks[at])) : blocks;
+
     editor
         .chain()
         .focus()
-        .insertContent(await withInlinePictures(document, fetchImage))
+        .insertContent({ ...document, content })
         .run();
-}
-
-/**
- * The pictures a pasted document names, brought along where they can be had.
- *
- * A remote picture carried inline is what a save turns into an attachment of the
- * record; one left as an address stays somebody else's file, and disappears the
- * day they take it down.
- */
-async function withInlinePictures(document, fetchImage) {
-    if (!fetchImage) {
-        return document;
-    }
-
-    const content = await Promise.all(
-        (document.content ?? []).map(async (block) => {
-            if (block.type !== 'image' || !/^https?:/i.test(block.attrs?.src ?? '')) {
-                return block;
-            }
-
-            const inlined = await fetchImage(block.attrs.src);
-
-            return inlined && inlined.length <= MAX_INLINE_IMAGE_BYTES
-                ? { ...block, attrs: { ...block.attrs, src: inlined } }
-                : block;
-        })
-    );
-
-    return { ...document, content };
 }

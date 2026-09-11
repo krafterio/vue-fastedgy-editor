@@ -103,18 +103,17 @@ const style = computed(() => ({
 }));
 
 /**
- * A picture dragged anywhere on the page is one this would take.
+ * A file dragged anywhere on the page is one this would take, where a feature
+ * says it takes that kind.
  *
- * Said rather than done: the drop itself is still the image feature's, through
- * ProseMirror, which is what places the picture where the pointer let go. This
- * only tells the application that the place exists, so it can dim everything
- * that would swallow the file for nothing — a text field, the page itself.
+ * Said rather than done: the drop itself is the feature's, through ProseMirror,
+ * which is what places it where the pointer let go. This only tells the
+ * application that the place exists, so it can dim everything that would
+ * swallow the file for nothing — a text field, the page itself.
  */
 const body = useTemplateRef('body');
 
-const { active: offered, over } = useFileDropZone(body, {
-    accept: (kinds) => kinds.length > 0 && kinds.every((kind) => kind.startsWith('image/')),
-});
+const { active: offered, over } = useFileDropZone(body, { accept: (kinds) => props.features.takes(kinds) });
 
 const actions = computed(() => actionsOf(props.features));
 
@@ -168,6 +167,12 @@ function onKeyDown(event) {
             <SlashMenu v-if="slashMenu" ref="menu" :editor="editor" :items="items" :labels="said" />
 
             <component :is="() => surface(editor, said)" v-for="(surface, at) in features.surfaces" :key="at" />
+
+            <component
+                :is="() => surface(() => editor.view.dom, said)"
+                v-for="(surface, at) in features.readingSurfaces"
+                :key="`reading-${at}`"
+            />
         </template>
     </div>
 </template>

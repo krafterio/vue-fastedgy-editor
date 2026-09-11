@@ -1,6 +1,6 @@
 <script setup>
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, VisuallyHidden } from 'reka-ui';
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import { useImageCarrier } from '../../composables/pictures.js';
 import { useRichTextControls } from '../../composables/controls.js';
@@ -11,9 +11,12 @@ const MAX_SCALE = 6;
 const STEP = 1.15;
 
 const props = defineProps({
-    editor: { type: Object, required: true },
+    /** What to show, the address as it is stored. */
+    picture: { type: Object, required: true },
     labels: { type: Object, default: () => ({}) },
 });
+
+const emit = defineEmits(['close']);
 
 const controls = useRichTextControls();
 const { icon } = useRichTextIcons();
@@ -105,12 +108,9 @@ const style = computed(() => ({
     transform: `translate(${Math.round(pan.x)}px, ${Math.round(pan.y)}px) scale(${scale.value})`,
 }));
 
-/*
- * A node view and a surface are two subtrees that never meet: the opener is left
- * on the extension, which both of them can reach.
- */
-onMounted(() => (props.editor.storage.image.open = open));
-onBeforeUnmount(() => (props.editor.storage.image.open = null));
+// Mounted to show one picture, and gone once it is closed.
+onMounted(() => open(props.picture.src, props.picture.alt));
+watch(shown, (up) => !up && emit('close'));
 </script>
 
 <template>
@@ -127,7 +127,8 @@ onBeforeUnmount(() => (props.editor.storage.image.open = null));
               a picture at full size is what is being looked at, and what the
               keyboard should be talking to.
             -->
-            <DialogContent data-slot="editor-lightbox">
+            <!-- A picture has a title and nothing more to be told of. -->
+            <DialogContent data-slot="editor-lightbox" :aria-describedby="undefined">
                 <VisuallyHidden as-child>
                     <DialogTitle>{{ alt || (labels.image ?? 'Image') }}</DialogTitle>
                 </VisuallyHidden>

@@ -11,15 +11,19 @@
  * alone is not: without a width there is no size to write.
  *
  * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null>,
- *   open?: (picture: { src: string, alt: string }) => void }} [options]
+ *   open?: (picture: { src: string, alt: string }) => void, viewer?: any, labels?: object }} [options]
  *   How a picture gets in. `pickFile` opens the browser's own file chooser
  *   unless an application has another way, and `store` answers with the
  *   identifier of the attachment it wrote, or `null` where the record does not
  *   exist yet. It is read **on every call**, never captured: a screen builds its
  *   features once, while the record it shows is still loading. Answering `null`
  *   leaves the picture as a `data:` URI in the text, and the next save turns it
- *   into an attachment. `open` is what a click on the picture calls, the
- *   application showing it at full size however it shows one.
+ *   into an attachment.
+ *
+ *   A click shows the picture at full size, written or read alike: in the
+ *   package's viewer, in `viewer` where the application lends a component of
+ *   its own (`picture` and `labels` in, `close` out), or through `open` where
+ *   it shows pictures some other way entirely.
  * @returns {import('./registry.js').RichTextFeature}
  */
 export function imageFeature(options?: {
@@ -29,6 +33,8 @@ export function imageFeature(options?: {
         src: string;
         alt: string;
     }) => void;
+    viewer?: any;
+    labels?: object;
 }): import("./registry.js").RichTextFeature;
 /**
  * Picks a file, stores it, and drops what came back into the document.
@@ -78,4 +84,28 @@ export function isAttachment(address: string): boolean;
  * @returns {number|null}
  */
 export function attachmentId(address: string): number | null;
+/**
+ * What a picture becomes on the clipboard, given what reads one.
+ *
+ * Copied, a picture travels **inside** what was copied, as a `data:` URI: an
+ * attachment belongs to the record it was stored against, and pasting elsewhere
+ * a reference to somebody else's file gives a picture that vanishes the day that
+ * record does. It is read at full size, never as the document draws it: the
+ * shown picture is optimised for the screen, and copying that would store the
+ * reduction over the original on the next save.
+ *
+ * Pasted, a picture named by a remote address is fetched to be carried inline,
+ * which the next save turns into an attachment of the record; one that cannot be
+ * had, or weighs too much, is left pointing where it pointed.
+ *
+ * @param {{ resolveImage: (src: string) => Promise<string|null>, fetchImage: (url: string) => Promise<string|null> }} carrier
+ * @returns {Record<string, { copied: Function, pasted: Function }>}
+ */
+export function pictureCarriers({ resolveImage, fetchImage }: {
+    resolveImage: (src: string) => Promise<string | null>;
+    fetchImage: (url: string) => Promise<string | null>;
+}): Record<string, {
+    copied: Function;
+    pasted: Function;
+}>;
 //# sourceMappingURL=image.d.ts.map

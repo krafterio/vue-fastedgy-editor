@@ -1,10 +1,11 @@
 <script setup>
-import { NodeViewContent, NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
+import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
 import { computed, onBeforeUnmount, ref } from 'vue';
 
 import { useRichTextControls } from '../../composables/controls.js';
 import { useRichTextIcons } from '../../composables/icons.js';
-import { codeBlockLanguages } from '../../features/code-block.js';
+import { richTextLabels } from '../../labels.js';
+import { BlockContent } from '../internal/BlockContent.js';
 
 const props = defineProps(nodeViewProps);
 
@@ -14,12 +15,31 @@ const { icon } = useRichTextIcons();
 const copied = ref(false);
 let clearing = null;
 
-const labels = computed(() => props.extension.options.labels ?? {});
+const labels = computed(() => ({ ...richTextLabels(), ...props.extension.options.labels }));
 
-const languages = computed(() => [
-    { value: null, label: labels.value.auto ?? 'auto' },
-    ...codeBlockLanguages.map((language) => ({ value: language, label: language })),
-]);
+/** Every language the feature highlights, by its name, after guessing. */
+const offered = computed(() => props.extension.options.languages?.() ?? []);
+const languages = computed(() => [{ value: null, label: labels.value.auto }, ...offered.value]);
+const nameOf = (value) => offered.value.find((language) => language.value === value)?.label ?? value;
+
+/**
+ * What the closed picker says: the language chosen, or what guessing made of
+ * the code, both in one label so the bar never grows a second control.
+ */
+const shown = computed(() => {
+    const chosen = props.node.attrs.language;
+
+    if (chosen) {
+        return nameOf(chosen);
+    }
+
+    const guessed = props.extension.options.detect?.(props.node.textContent) ?? null;
+
+    return guessed ? `${labels.value.auto} · ${nameOf(guessed)}` : labels.value.auto;
+});
+
+/** Only where the document can be written: a picker read changes nothing. */
+const choose = (language) => props.editor.isEditable && props.updateAttributes({ language });
 
 const copyLabel = computed(() => (copied.value ? labels.value.copied : labels.value.copy) ?? '');
 
@@ -42,7 +62,8 @@ onBeforeUnmount(() => clearTimeout(clearing));
                 :label="labels.language ?? ''"
                 :options="languages"
                 :selected="node.attrs.language"
-                :on-select="(language) => updateAttributes({ language })"
+                :shown="shown"
+                :on-select="choose"
             />
 
             <component :is="controls.tappable" :on-tap="copy" :tooltip="copyLabel">
@@ -51,6 +72,6 @@ onBeforeUnmount(() => clearTimeout(clearing));
             </component>
         </div>
 
-        <pre><NodeViewContent as="code" /></pre>
+        <pre><BlockContent as="code" /></pre>
     </NodeViewWrapper>
 </template>

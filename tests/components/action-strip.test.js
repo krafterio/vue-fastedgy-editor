@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import RichTextActionBar from '../../components/RichTextActionBar.vue';
 import RichTextEditor from '../../components/RichTextEditor.vue';
-import { coreExtensions } from '../../extensions/schema.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
 import { todoListFeature } from '../../features/todo-list.js';
@@ -35,7 +35,7 @@ afterEach(() => {
 function editorOf(markdown = '', features = createFeatures([])) {
     const editor = new Editor({
         element: document.createElement('div'),
-        extensions: [...coreExtensions(), ...features.extensions],
+        extensions: richTextExtensions(features),
         content: createMarkdownCodec(features).decode(markdown),
     });
 

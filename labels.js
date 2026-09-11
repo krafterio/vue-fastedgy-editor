@@ -51,6 +51,9 @@ export const richTextWords = Object.freeze({
     open: 'Open',
     unlink: 'Unlink',
     language: 'Language',
+    auto: 'Auto',
+    copy: 'Copy',
+    copied: 'Copied',
     sending: 'Sending',
 
     close: 'Close',

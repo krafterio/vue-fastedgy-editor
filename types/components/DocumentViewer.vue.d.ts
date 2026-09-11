@@ -9,44 +9,126 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: (ObjectConstructor | StringConstructor)[];
         default: string;
     };
+    /** What the document is made of, the same set the editor was given. */
+    features: {
+        type: ObjectConstructor;
+        default: () => {
+            features: import("../index.js").RichTextFeature[];
+            without(...names: any[]): /*elided*/ any;
+            withoutAll(names: any): /*elided*/ any;
+            and(added: any): /*elided*/ any;
+            readonly extensions: any[];
+            readonly views: {
+                [k: string]: any;
+            };
+            readonly menuItems: any[];
+            readonly replacedMenuItems: Set<string>;
+            clipboard(): any;
+            takes(kinds: any): boolean;
+            readonly actions: any[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
+            readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
+            readonly encoders: any;
+            readonly decoders: {};
+            readonly inlineRules: ((md: any) => void)[];
+            before(doc: any): any;
+            after(blocks: any): any;
+            holdsEnter(state: any): boolean;
+        };
+    };
     codec: {
         type: ObjectConstructor;
         default: null;
     };
-    highlight: {
-        type: FunctionConstructor;
+    /** The page's three modes, the editor's word for word. */
+    minHeight: {
+        type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
+    maxHeight: {
+        type: (NumberConstructor | StringConstructor)[];
+        default: null;
+    };
+    fill: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /** The stored path of the cover. */
     cover: {
         type: StringConstructor;
         default: string;
     };
-}>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
-    mention: (...args: any[]) => void;
-}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+    labels: {
+        type: ObjectConstructor;
+        default: () => {};
+    };
+}>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
     value: {
         type: (ObjectConstructor | StringConstructor)[];
         default: string;
     };
+    /** What the document is made of, the same set the editor was given. */
+    features: {
+        type: ObjectConstructor;
+        default: () => {
+            features: import("../index.js").RichTextFeature[];
+            without(...names: any[]): /*elided*/ any;
+            withoutAll(names: any): /*elided*/ any;
+            and(added: any): /*elided*/ any;
+            readonly extensions: any[];
+            readonly views: {
+                [k: string]: any;
+            };
+            readonly menuItems: any[];
+            readonly replacedMenuItems: Set<string>;
+            clipboard(): any;
+            takes(kinds: any): boolean;
+            readonly actions: any[];
+            readonly surfaces: ((editor: any, labels: object) => any)[];
+            readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
+            readonly encoders: any;
+            readonly decoders: {};
+            readonly inlineRules: ((md: any) => void)[];
+            before(doc: any): any;
+            after(blocks: any): any;
+            holdsEnter(state: any): boolean;
+        };
+    };
     codec: {
         type: ObjectConstructor;
         default: null;
     };
-    highlight: {
-        type: FunctionConstructor;
+    /** The page's three modes, the editor's word for word. */
+    minHeight: {
+        type: (NumberConstructor | StringConstructor)[];
         default: null;
     };
+    maxHeight: {
+        type: (NumberConstructor | StringConstructor)[];
+        default: null;
+    };
+    fill: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
+    /** The stored path of the cover. */
     cover: {
         type: StringConstructor;
         default: string;
     };
-}>> & Readonly<{
-    onMention?: ((...args: any[]) => any) | undefined;
-}>, {
+    labels: {
+        type: ObjectConstructor;
+        default: () => {};
+    };
+}>> & Readonly<{}>, {
+    fill: boolean;
     value: string | Record<string, any>;
+    labels: Record<string, any>;
+    features: Record<string, any>;
     codec: Record<string, any>;
+    minHeight: string | number;
+    maxHeight: string | number;
     cover: string;
-    highlight: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 type __VLS_Slots = {
     cover?: ((props: {}) => any) | undefined;

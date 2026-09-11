@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { coreExtensions } from '../../extensions/schema.js';
 import { looksLikeMarkdown, pasteFromClipboard, richTextClipboard } from '../../extensions/clipboard.js';
-import { imageFeature } from '../../features/image.js';
+import { imageFeature, pictureCarriers } from '../../features/image.js';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
 
@@ -96,7 +96,10 @@ describe('the clipboard', () => {
                 ...imageFeature().extensions,
                 richTextClipboard({
                     codec: imageCodec,
-                    resolveImage: async () => 'data:image/png;base64,iVBORw0KGgo=',
+                    carriers: pictureCarriers({
+                        resolveImage: async () => 'data:image/png;base64,iVBORw0KGgo=',
+                        fetchImage: async () => null,
+                    }),
                 }),
             ],
             content: { type: 'doc', content: [{ type: 'image', attrs: { src: 'attachment:15' } }] },

@@ -1,14 +1,11 @@
 import { config } from '@vue/test-utils';
-import { fetcherSrc } from 'vue-fastedgy';
+import { createFetcher } from 'vue-fastedgy';
 
 /**
- * The directive that carries the token onto a stored picture.
- *
- * `createFetcher` registers it wherever the package really runs, and nothing
- * here installs that plugin: Vue would be asked for a directive nobody
- * registered and warn at every picture a test draws.
+ * The fetcher, installed as an application installs it, with the directive
+ * that carries the token onto a stored picture.
  */
-config.global.directives = { 'fetcher-src': fetcherSrc };
+config.global.plugins = [createFetcher()];
 
 /**
  * jsdom draws nothing, so nothing ever comes into sight.

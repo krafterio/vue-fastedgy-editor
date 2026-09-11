@@ -1,0 +1,1 @@
+{"version":3,"file":"rich-text.d.ts","sourceRoot":"","sources":["../../render/rich-text.js"],"names":[],"mappings":"AAuBA;;;;;;;;;;;;;;;;;;;;;;;;GAwBG;AACH,+CAHW,UAAU,CAAC,2CAAgD,CAAC,GAC1D;IAAE,MAAM,EAAE,GAAG,CAAC;IAAC,KAAK,EAAE,UAAU,CAAC,OAAO,mBAAmB,CAAC,CAAC;IAAC,IAAI,EAAE,CAAC,GAAG,EAAE,MAAM,KAAK,GAAG,EAAE,CAAA;CAAE,CAQxG;oCA1CmC,sBAAsB"}

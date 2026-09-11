@@ -18,13 +18,17 @@ defineProps({
 
     selected: { type: [String, Number, null], default: null },
     onSelect: { type: Function, default: null },
+
+    /** What the closed picker says, where it says more than the option chosen. */
+    shown: { type: String, default: '' },
 });
 </script>
 
 <template>
     <SelectRoot :model-value="selected" @update:model-value="onSelect?.($event)">
         <SelectTrigger data-slot="editor-picker" :aria-label="label || undefined">
-            <SelectValue :placeholder="label" />
+            <SelectValue v-if="shown" :placeholder="label">{{ shown }}</SelectValue>
+            <SelectValue v-else :placeholder="label" />
         </SelectTrigger>
 
         <SelectPortal>

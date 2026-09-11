@@ -51,6 +51,9 @@ export const richTextWords: Readonly<{
     open: "Open";
     unlink: "Unlink";
     language: "Language";
+    auto: "Auto";
+    copy: "Copy";
+    copied: "Copied";
     sending: "Sending";
     close: "Close";
     download: "Save the image";
