@@ -24,6 +24,8 @@ import { markRaw } from 'vue';
  * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
  *   text, written or read
  * @property {MarkdownContract} [markdown]
+ * @property {() => Promise<void>} [ready] - Settled once what it loads to draw as it does is there, a code
+ *   block's colours for instance; asked for by whatever has to wait for it
  * @property {() => RichTextEditing | Promise<RichTextEditing>} [editing] - What only writing needs, asked for
  *   once an editor is built, `import()` being how it stays out of what only reads
  */
@@ -185,6 +187,17 @@ export function createFeatures(features = []) {
             return [...features]
                 .reverse()
                 .reduce((shaped, feature) => feature.markdown?.after?.(shaped) ?? shaped, blocks);
+        },
+
+        /**
+         * Settled once every feature has what it loads to draw as it does: a
+         * code block's colours arrive after the block itself, and what compares
+         * or prints a document waits for them here.
+         *
+         * @returns {Promise<void>}
+         */
+        async ready() {
+            await Promise.all(features.map((feature) => Promise.resolve(feature.ready?.())));
         },
 
         /**

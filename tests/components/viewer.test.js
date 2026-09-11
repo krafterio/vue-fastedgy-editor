@@ -102,16 +102,19 @@ describe('RichTextViewer', () => {
 });
 
 describe('what a viewer draws of a code block', () => {
-    it('colours it as the editor does, the feature bringing the colours', () => {
+    it('colours it as the editor does, the feature bringing the colours', async () => {
         const coloured = viewerOf('```javascript\nconst a = 1;\n```', features.and([codeBlockFeature()]));
 
         expect(coloured.find('pre code').text()).toBe('const a = 1;');
-        expect(
-            coloured
-                .find('pre code span')
-                .classes()
-                .some((one) => one.startsWith('hljs-'))
-        ).toBe(true);
+
+        await vi.waitFor(() =>
+            expect(
+                coloured
+                    .find('pre code span')
+                    .classes()
+                    .some((one) => one.startsWith('hljs-'))
+            ).toBe(true)
+        );
     });
 
     it('reads a picture through the directive the fetcher registered, once it comes into sight', () => {

@@ -61,6 +61,7 @@ export function useRichTextEditor(options?: {
         readonly inlineRules: ((md: any) => void)[];
         before(doc: any): any;
         after(blocks: any): any;
+        ready(): Promise<void>;
         editing(): Promise<RichTextEditingSet>;
     } | undefined;
     codec?: {

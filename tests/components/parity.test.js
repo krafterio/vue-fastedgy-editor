@@ -118,6 +118,8 @@ async function bothOf(markdown, { editable = true, strict = false, set = feature
 
     mounted.push(editor, viewer);
 
+    // A code block's colours arrive after the block: compared once they have.
+    await set.ready();
     await built(editor);
     await new Promise((resolve) => setTimeout(resolve, 0));
     await nextTick();

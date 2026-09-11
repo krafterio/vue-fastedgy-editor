@@ -5,14 +5,16 @@
  * the node; what this adds is the colours, the block drawn with its language
  * picker, and the ways to write one.
  *
- * Every grammar highlight.js knows is offered unless the application keeps
- * fewer, `languages` taking what `lowlight` takes: `{ javascript, python }`
- * from `highlight.js/lib/languages/*`, or `common` from `lowlight`. What a block
- * names and is not among them is guessed, as a block that names nothing is.
+ * The languages it colours are those `languages` gives, what `lowlight` takes:
+ * `{ javascript, python }` from `highlight.js/lib/languages/*`, or `all` from
+ * `lowlight` for every one there is, and nothing else is bundled. Given none,
+ * a dozen a note most often holds, loaded the first time a block is drawn: a
+ * block drawn before they arrive is drawn plain, and coloured the moment they
+ * do, written or read. `features.ready()` is settled once they are there.
  *
- * Guessed among few: the mobile side's languages, or those the application
- * kept, or `guess` where it says otherwise. highlight.js guessing among all it
- * knows is wrong more often than right.
+ * What a block names and is not among them is guessed, as a block that names
+ * nothing is, among those languages or among `guess` where it says otherwise:
+ * highlight.js guessing among all it knows is wrong more often than right.
  *
  * `vue` is highlighted as `xml` where no grammar of that name was given:
  * highlight.js has none, and the value a document carries is not something to
@@ -20,8 +22,9 @@
  *
  * @param {{ offered?: boolean, languages?: Record<string, any>, guess?: string[], labels?: object }} [options]
  *   `offered: false` keeps every way of reading a code block and takes away every
- *   way of creating one. Dropping the feature instead would take the reading with
- *   it, and a document holding a fence would come back without it.
+ *   way of creating one. An application that writes none can leave the feature
+ *   out instead: the core still reads a block, drawn plain, and nothing of the
+ *   highlighter is loaded.
  * @returns {import('./registry.js').RichTextFeature}
  */
 export function codeBlockFeature(options?: {

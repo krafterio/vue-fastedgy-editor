@@ -4,6 +4,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import javascript from 'highlight.js/lib/languages/javascript';
 import python from 'highlight.js/lib/languages/python';
+import { all } from 'lowlight';
 
 import { codeBlockFeature } from '../../features/code-block.js';
 import { createFeatures } from '../../features/registry.js';
@@ -70,11 +71,34 @@ describe('the language of a code block, as on mobile', () => {
 
     const extensionOf = (feature) => feature.extensions.find((extension) => extension.name === 'codeBlock');
 
-    it('offers every language highlight.js knows, each by its name', () => {
-        const offered = extensionOf(codeBlockFeature()).options.languages();
+    it('offers the dozen a note most often holds, each by its name, once they are loaded', async () => {
+        const feature = codeBlockFeature();
+
+        await feature.ready();
+
+        const offered = extensionOf(feature).options.languages();
+
+        expect(offered.map((language) => language.value).sort()).toEqual([
+            'dart',
+            'ini',
+            'java',
+            'javascript',
+            'json',
+            'kotlin',
+            'markdown',
+            'python',
+            'swift',
+            'typescript',
+            'xml',
+            'yaml',
+        ]);
+        expect(offered).toContainEqual({ value: 'javascript', label: 'JavaScript' });
+    });
+
+    it('offers every language highlight.js knows, where the application asks for them all', () => {
+        const offered = extensionOf(codeBlockFeature({ languages: all })).options.languages();
 
         expect(offered.length).toBeGreaterThan(150);
-        expect(offered).toContainEqual({ value: 'javascript', label: 'JavaScript' });
     });
 
     it('keeps only those an application keeps', () => {
@@ -109,8 +133,6 @@ describe('the language of a code block, as on mobile', () => {
     it('colours the code with the grammar it names', async () => {
         const mounted = await mountEditor(codeBlockFeature(), block('def a(): pass', 'python'));
 
-        await settled();
-
-        expect(mounted.find('pre code span.hljs-keyword').text()).toBe('def');
+        await vi.waitFor(() => expect(mounted.find('pre code span.hljs-keyword').text()).toBe('def'));
     });
 });

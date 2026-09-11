@@ -220,6 +220,9 @@ const THEMES = {
 let warmed = false;
 
 async function capture(component, props, theme = THEMES.light) {
+    // A code block's colours arrive after the block: compared once they have.
+    await props.features?.ready();
+
     if (!warmed) {
         warmed = true;
         await capture(component, props, theme);

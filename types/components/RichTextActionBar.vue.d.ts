@@ -24,6 +24,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
             readonly inlineRules: ((md: any) => void)[];
             before(doc: any): any;
             after(blocks: any): any;
+            ready(): Promise<void>;
             editing(): Promise<RichTextEditingSet>;
         };
     };
@@ -56,6 +57,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
             readonly inlineRules: ((md: any) => void)[];
             before(doc: any): any;
             after(blocks: any): any;
+            ready(): Promise<void>;
             editing(): Promise<RichTextEditingSet>;
         };
     };
