@@ -24,6 +24,13 @@ const props = defineProps({
     maxHeight: { type: [String, Number], default: null },
     fill: { type: Boolean, default: false },
 
+    /**
+     * Set into a column of the application's: the page keeps no margin of its
+     * own, its blocks line up with what stands above and below it, and the
+     * gutter hangs outside, in the margin the application leaves.
+     */
+    flush: { type: Boolean, default: false },
+
     /** The stored path of the cover, and how a new one is chosen and kept. */
     cover: { type: String, default: '' },
     pickFile: { type: Function, default: null },
@@ -144,7 +151,12 @@ function onPointerDown(event) {
 </script>
 
 <template>
-    <div class="fe-document" data-slot="document" :style="{ containerType: 'inline-size' }">
+    <div
+        class="fe-document"
+        data-slot="document"
+        :data-flush="flush || undefined"
+        :style="{ containerType: 'inline-size' }"
+    >
         <div
             data-slot="document-scroll"
             :style="style"

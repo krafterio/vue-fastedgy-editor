@@ -91,6 +91,21 @@
     /* What a column takes where nobody has resized it. */
     --fe-editor-table-column: 160px;
 
+    /*
+     * The syntax palette, the native one: muted on purpose, enough contrast to
+     * scan code and no rainbow, built from the roles so an application with no
+     * palette of its own still reads its code as code.
+     */
+    --fe-editor-code-keyword: var(--fe-editor-link);
+    --fe-editor-code-literal: var(--fe-editor-ink);
+    --fe-editor-code-string: var(--fe-editor-muted);
+    --fe-editor-code-comment: var(--fe-editor-muted);
+    --fe-editor-code-title: var(--fe-editor-ink);
+    --fe-editor-code-name: var(--fe-editor-danger);
+
+    /* Types, built-ins and variables: plain unless an application colours them. */
+    --fe-editor-code-type: currentColor;
+
     color: var(--fe-editor-ink);
     font-family: var(--fe-editor-font);
     line-height: var(--fe-editor-line-height);
@@ -131,6 +146,24 @@
 .fe-document [data-slot='document-blocks'] {
     padding-left: min(var(--fe-doc-gutter-width), var(--fe-doc-padding-x));
     margin-left: calc(-1 * min(var(--fe-doc-gutter-width), var(--fe-doc-padding-x)));
+}
+
+/*
+ * A page set into a column of the application's: no margin, no width of its
+ * own, and the gutter hanging outside the page rather than bounded by a margin
+ * it no longer has.
+ */
+.fe-document[data-flush] {
+    --fe-doc-padding-x: 0px;
+}
+
+.fe-document[data-flush] [data-slot='document-column'] {
+    max-width: none;
+}
+
+.fe-document[data-flush] [data-slot='document-blocks'] {
+    padding-left: var(--fe-doc-gutter-width);
+    margin-left: calc(-1 * var(--fe-doc-gutter-width));
 }
 
 .fe-document [data-slot='document-cover'] {
@@ -449,6 +482,71 @@
 .fe-editor [data-slot='editor-code-block'] {
     background: var(--fe-editor-subtle-surface);
     border-radius: var(--fe-editor-block-radius);
+}
+
+/*
+ * The scopes highlight.js names, as the native side colours them. A scope with
+ * no rule here is drawn as plain code, which is what keeps a partial palette
+ * valid.
+ */
+.fe-editor :is(.hljs-comment, .hljs-quote) {
+    color: var(--fe-editor-code-comment);
+    font-style: italic;
+}
+
+.fe-editor :is(.hljs-keyword, .hljs-selector-tag, .hljs-doctag, .hljs-formula) {
+    color: var(--fe-editor-code-keyword);
+}
+
+.fe-editor :is(.hljs-literal, .hljs-number) {
+    color: var(--fe-editor-code-literal);
+}
+
+.fe-editor :is(.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute) {
+    color: var(--fe-editor-code-string);
+}
+
+.fe-editor :is(.hljs-title, .hljs-section) {
+    color: var(--fe-editor-code-title);
+    font-weight: 600;
+}
+
+.fe-editor :is(.hljs-name, .hljs-tag, .hljs-selector-id, .hljs-deletion) {
+    color: var(--fe-editor-code-name);
+}
+
+.fe-editor
+    :is(
+        .hljs-built_in,
+        .hljs-type,
+        .hljs-class,
+        .hljs-attr,
+        .hljs-variable,
+        .hljs-template-variable,
+        .hljs-symbol
+    ) {
+    color: var(--fe-editor-code-type);
+}
+
+.fe-editor .hljs-meta {
+    color: var(--fe-editor-code-comment);
+}
+
+.fe-editor .hljs-meta .hljs-string {
+    color: var(--fe-editor-code-string);
+}
+
+.fe-editor .hljs-link {
+    color: var(--fe-editor-link);
+    text-decoration: underline;
+}
+
+.fe-editor .hljs-emphasis {
+    font-style: italic;
+}
+
+.fe-editor .hljs-strong {
+    font-weight: 600;
 }
 
 .fe-editor [data-slot='editor-code-block-bar'] {

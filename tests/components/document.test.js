@@ -47,6 +47,11 @@ describe('DocumentEditor', () => {
         expect(page.find('[data-slot="document-blocks"] h1').text()).toBe('titre');
     });
 
+    it('sets itself into the column it is given when flush', async () => {
+        expect((await documentOf()).find('[data-slot="document"]').attributes('data-flush')).toBeUndefined();
+        expect((await documentOf({ flush: true })).find('[data-slot="document"]').attributes('data-flush')).toBe('true');
+    });
+
     it('asks for a cover width rounded up to the next step', async () => {
         const page = await documentOf({ cover: 'notes/15/cover.png' });
 

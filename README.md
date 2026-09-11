@@ -55,7 +55,8 @@ const features = createFeatures([todoListFeature(), linkFeature()]);
 
 The editors take `v-model` (markdown), `features`, `editable`, `labels`, `emptyPlaceholder` and
 `hintPlaceholder`, and three sizing modes: `minHeight` / `maxHeight`, or `fill` to take a bounded
-container's height. `RichTextEditor` adds `maxWidth`, `resetWhenEmpty` and the `submit` event, held
+container's height. `DocumentEditor` takes `flush` to sit in a column of the application's: no margin of
+its own, the blocks aligned on the column and the gutter hanging outside it. `RichTextEditor` adds `maxWidth`, `resetWhenEmpty` and the `submit` event, held
 back while a mention is being picked or the caret is in a code block. `DocumentEditor` adds the
 cover: `v-model:cover` (a stored path), `pickFile` and `storeCover(file, onProgress)`. Both emit
 `ready` with the Tiptap editor, and take `slashMenu: false` or `formatBubble: false` to go without

@@ -51,6 +51,15 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: BooleanConstructor;
         default: boolean;
     };
+    /**
+     * Set into a column of the application's: the page keeps no margin of its
+     * own, its blocks line up with what stands above and below it, and the
+     * gutter hangs outside, in the margin the application leaves.
+     */
+    flush: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
     /** The stored path of the cover, and how a new one is chosen and kept. */
     cover: {
         type: StringConstructor;
@@ -137,6 +146,15 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
         type: BooleanConstructor;
         default: boolean;
     };
+    /**
+     * Set into a column of the application's: the page keeps no margin of its
+     * own, its blocks line up with what stands above and below it, and the
+     * gutter hangs outside, in the margin the application leaves.
+     */
+    flush: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
     /** The stored path of the cover, and how a new one is chosen and kept. */
     cover: {
         type: StringConstructor;
@@ -190,6 +208,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     hintPlaceholder: string;
     slashMenu: boolean;
     formatBubble: boolean;
+    flush: boolean;
     storeCover: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 type __VLS_Slots = {
