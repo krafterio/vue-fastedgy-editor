@@ -976,9 +976,21 @@
 
 [data-slot='editor-mention-preview-head'] {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: calc(2 * var(--fe-editor-space));
     min-width: 0;
+}
+
+/*
+ * As tall as the first line of the title, its mark centred in it: a title on
+ * two lines, or a subtitle under it, leaves the mark where the name begins. A
+ * mark taller than a line, a face, stands at the top of the card.
+ */
+[data-slot='editor-mention-preview-leading'] {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: var(--fe-editor-line);
 }
 
 [data-slot='editor-mention-preview-said'] {

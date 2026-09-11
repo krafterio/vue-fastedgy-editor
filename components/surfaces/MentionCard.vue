@@ -38,11 +38,10 @@ const controls = useRichTextControls();
             -->
             <template v-else-if="preview">
                 <div data-slot="editor-mention-preview-head">
-                    <component
-                        :is="preview.leading"
-                        v-if="preview.leading"
-                        data-slot="editor-mention-preview-leading"
-                    />
+                    <!-- One line tall: a mark stands beside the first line of the title, however many follow. -->
+                    <span v-if="preview.leading" data-slot="editor-mention-preview-leading">
+                        <component :is="preview.leading" />
+                    </span>
 
                     <div data-slot="editor-mention-preview-said">
                         <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
