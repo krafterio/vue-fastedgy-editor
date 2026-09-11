@@ -115,12 +115,35 @@ function open() {
     const picture = { src: props.node.attrs.src ?? '', alt: props.node.attrs.alt ?? '' };
 
     if (props.extension.options.open) {
-        props.extension.options.open(picture);
+        props.extension.options.open(picture, around(picture));
 
         return;
     }
 
     opened.value = picture;
+}
+
+/**
+ * Every picture of the document this one is drawn in, in order, and where it
+ * stands among them, for a viewer that goes from one to the next.
+ *
+ * Read off the page rather than off the document: a reader mounts no editor
+ * and tells its pictures nothing of the rest, while both draw every picture
+ * here, its address on it.
+ */
+function around(picture) {
+    const own = frame.value?.closest('[data-slot="editor-image"]') ?? null;
+    const drawn = [...(own?.closest('.fe-editor')?.querySelectorAll('[data-slot="editor-image"]') ?? [])];
+    const index = drawn.indexOf(own);
+
+    if (index < 0) {
+        return { pictures: [picture], index: 0 };
+    }
+
+    return {
+        pictures: drawn.map((one) => ({ src: one.dataset.picture ?? '', alt: one.dataset.alt ?? '' })),
+        index,
+    };
 }
 
 /**
@@ -134,7 +157,12 @@ const words = computed(() => ({ ...richTextLabels(), ...props.extension.options.
 </script>
 
 <template>
-    <NodeViewWrapper data-slot="editor-image" :data-selected="selected || undefined">
+    <NodeViewWrapper
+        data-slot="editor-image"
+        :data-selected="selected || undefined"
+        :data-picture="node.attrs.src ?? ''"
+        :data-alt="node.attrs.alt ?? ''"
+    >
         <div ref="frame" data-slot="editor-image-frame" :style="style">
             <img
                 v-fetcher-src.lazy

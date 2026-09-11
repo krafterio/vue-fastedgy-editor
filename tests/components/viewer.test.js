@@ -198,5 +198,31 @@ describe('a picture clicked', () => {
 
             wrapper.unmount();
         });
+
+        it(`hands every picture of the document along, and where the one clicked stands, ${where}`, async () => {
+            const calls = [];
+            const set = createFeatures([imageFeature({ open: (...args) => calls.push(args) })]);
+            const value = `![](${PICTURE})\n\ntext\n\n![](attachment:15)`;
+            const props =
+                component === RichTextEditor ? { features: set, modelValue: value } : { features: set, value };
+            const wrapper = mount(component, { props, attachTo: document.body });
+
+            if (component === RichTextEditor) {
+                await built(wrapper);
+            }
+
+            await settled();
+            await wrapper.findAll('[data-slot="editor-image"] img')[1].trigger('click');
+
+            expect(calls[0][1]).toEqual({
+                pictures: [
+                    { src: PICTURE, alt: '' },
+                    { src: 'attachment:15', alt: '' },
+                ],
+                index: 1,
+            });
+
+            wrapper.unmount();
+        });
     }
 });

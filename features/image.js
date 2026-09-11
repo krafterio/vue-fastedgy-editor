@@ -28,7 +28,9 @@ const REFUSED = /^(javascript|vbscript):/i;
  * alone is not: without a width there is no size to write.
  *
  * @param {{ pickFile?: () => Promise<File|null>, store?: (file: File) => Promise<number|null>,
- *   open?: (picture: { src: string, alt: string }) => void, viewer?: any, labels?: object }} [options]
+ *   open?: (picture: { src: string, alt: string },
+ *     document: { pictures: Array<{ src: string, alt: string }>, index: number }) => void,
+ *   viewer?: any, labels?: object }} [options]
  *   How a picture gets in. `pickFile` opens the browser's own file chooser
  *   unless an application has another way, and `store` answers with the
  *   identifier of the attachment it wrote, or `null` where the record does not
@@ -40,7 +42,9 @@ const REFUSED = /^(javascript|vbscript):/i;
  *   A click shows the picture at full size, written or read alike: in the
  *   package's viewer, in `viewer` where the application lends a component of
  *   its own (`picture` and `labels` in, `close` out), or through `open` where
- *   it shows pictures some other way entirely.
+ *   it shows pictures some other way entirely. `open` is also handed every
+ *   picture of the document and where this one stands, for a viewer that goes
+ *   from one to the next.
  * @returns {import('./registry.js').RichTextFeature}
  */
 export function imageFeature(options = {}) {
