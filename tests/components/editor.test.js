@@ -63,6 +63,17 @@ describe('RichTextEditor', () => {
         expect(mounted.find('ul li').text()).toBe('une puce');
     });
 
+    it('empties when it is given nothing from outside', async () => {
+        const mounted = await editorOf({ modelValue: 'Test 18', resetWhenEmpty: true });
+
+        await mounted.setProps({ editable: false });
+        await mounted.setProps({ modelValue: '' });
+        await mounted.setProps({ editable: true });
+        await nextTick();
+
+        expect(mounted.find('.ProseMirror').text()).toBe('');
+    });
+
     it('draws no scrollbar in auto, and one where it is capped', async () => {
         const auto = await editorOf({ modelValue: 'du texte' });
         const capped = await editorOf({ modelValue: 'du texte', maxHeight: 200 });
@@ -75,8 +86,8 @@ describe('RichTextEditor', () => {
     });
 
     it('sends on Enter, unless a feature is holding the key', async () => {
-        const mounted = await editorOf({ modelValue: '' });
-        const content = mounted.find('[data-slot="editor-content"]');
+        const mounted = await editorOf({ modelValue: '', onSubmit: () => {} });
+        const content = mounted.find('.ProseMirror');
 
         await content.trigger('keydown', { key: 'Enter' });
 
@@ -88,6 +99,34 @@ describe('RichTextEditor', () => {
         await content.trigger('keydown', { key: 'Enter' });
 
         expect(mounted.emitted('submit')).toHaveLength(1);
+    });
+
+    it('opens a line on Enter where nobody listens for submit', async () => {
+        const mounted = await editorOf({ modelValue: 'un' });
+        const editor = mounted.findComponent({ name: 'EditorContent' }).props('editor');
+
+        editor.commands.focus('end');
+        await mounted.find('.ProseMirror').trigger('keydown', { key: 'Enter' });
+
+        expect(mounted.emitted('submit')).toBeUndefined();
+        expect(editor.getJSON().content).toHaveLength(2);
+    });
+
+    it('lets the application take a key before anything else', async () => {
+        const seen = [];
+        const mounted = await editorOf({
+            modelValue: 'un',
+            onSubmit: () => {},
+            handleKeyDown: (event) => (seen.push(event.key), event.key === 'Enter' && event.metaKey),
+        });
+        const editor = mounted.findComponent({ name: 'EditorContent' }).props('editor');
+
+        editor.commands.focus('end');
+        await mounted.find('.ProseMirror').trigger('keydown', { key: 'Enter', metaKey: true });
+
+        expect(seen).toEqual(['Enter']);
+        expect(mounted.emitted('submit')).toBeUndefined();
+        expect(editor.getJSON().content).toHaveLength(1);
     });
 
     it('lets two editors on one view hold their own', async () => {

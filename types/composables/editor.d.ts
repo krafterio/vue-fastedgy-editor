@@ -43,6 +43,8 @@ export function placeholderOf(options: {
  * @param {string} [options.hintPlaceholder] - Said on an empty paragraph
  * @param {(markdown: string, editor: any) => void} [options.onUpdate]
  * @param {(editor: any) => void} [options.onCreate]
+ * @param {(event: KeyboardEvent, editor: any) => boolean} [options.onKeyDown] - Asked before ProseMirror
+ *   acts on a key: `true` takes it, and the document never sees it
  * @returns {import('vue').ShallowRef<any>}
  */
 export function useRichTextEditor(options?: {
@@ -74,6 +76,7 @@ export function useRichTextEditor(options?: {
     hintPlaceholder?: string | undefined;
     onUpdate?: ((markdown: string, editor: any) => void) | undefined;
     onCreate?: ((editor: any) => void) | undefined;
+    onKeyDown?: ((event: KeyboardEvent, editor: any) => boolean) | undefined;
 }): import("vue").ShallowRef<any>;
 /**
  * The title above a document spills into it.

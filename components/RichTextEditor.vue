@@ -1,6 +1,6 @@
 <script setup>
 import { EditorContent } from '@tiptap/vue-3';
-import { computed, ref, useTemplateRef, watch } from 'vue';
+import { computed, getCurrentInstance, ref, useTemplateRef, watch } from 'vue';
 import { useFileDropZone } from 'vue-fastedgy';
 
 import { placeholderOf, useRichTextEditing, useRichTextEditor, writeInto } from '../composables/editor.js';
@@ -46,9 +46,22 @@ const props = defineProps({
      * a thumb cannot reach.
      */
     formatBubble: { type: Boolean, default: true },
+
+    /**
+     * Asked first of every key pressed in the text, before the field sends and
+     * before ProseMirror acts: `true` takes the key, and nothing else sees it.
+     * Where an application decides what a key does on this field.
+     *
+     * @type {(event: KeyboardEvent, editor: any) => boolean}
+     */
+    handleKeyDown: { type: Function, default: null },
 });
 
 const emit = defineEmits(['update:modelValue', 'submit', 'ready']);
+
+/** Whether anybody listens for `submit`: a field that sends, rather than a page that opens a line. */
+const instance = getCurrentInstance();
+const sends = () => Boolean(instance?.vnode.props?.onSubmit);
 
 const model = defineModel({ type: String, default: '' });
 
@@ -86,6 +99,8 @@ const editor = useRichTextEditor({
     },
 
     onCreate: (current) => emit('ready', current),
+
+    onKeyDown,
 });
 
 // What the field is given from the outside, when it is not what it holds.
@@ -138,21 +153,29 @@ const items = computed(() => menuItemsOf(editing.value));
 
 /**
  * Enter sends where a field asks it to, unless a feature is holding the key: a
- * mention being picked, a line being written in a fence.
+ * mention being picked, a line being written in a fence, a word still being
+ * composed with an input method.
+ *
+ * Answered before ProseMirror acts on the key, so what is sent is what was
+ * written, without the empty line Enter would have opened under it.
  */
-function onKeyDown(event) {
-    const current = editor.value;
+function onKeyDown(event, current) {
+    if (props.handleKeyDown?.(event, current) === true) {
+        return true;
+    }
 
-    if (event.key !== 'Enter' || event.shiftKey || !current) {
-        return;
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing || !current || !sends()) {
+        return false;
     }
 
     if (menu.value?.isOpen() || editing.value?.holdsEnter({ editor: current })) {
-        return;
+        return false;
     }
 
     event.preventDefault();
     emit('submit', model.value);
+
+    return true;
 }
 </script>
 
@@ -163,13 +186,7 @@ function onKeyDown(event) {
         <div ref="body" data-slot="editor-body" :data-offered="offered || undefined" :data-over="over || undefined">
             <slot name="leading" />
 
-            <EditorContent
-                v-if="editor"
-                :editor="editor"
-                data-slot="editor-content"
-                :style="style"
-                @keydown="onKeyDown"
-            />
+            <EditorContent v-if="editor" :editor="editor" data-slot="editor-content" :style="style" />
 
             <!--
               The document read while the editor is built: drawn by what draws it

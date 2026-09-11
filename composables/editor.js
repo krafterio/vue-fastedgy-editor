@@ -70,6 +70,8 @@ export function placeholderOf(options) {
  * @param {string} [options.hintPlaceholder] - Said on an empty paragraph
  * @param {(markdown: string, editor: any) => void} [options.onUpdate]
  * @param {(editor: any) => void} [options.onCreate]
+ * @param {(event: KeyboardEvent, editor: any) => boolean} [options.onKeyDown] - Asked before ProseMirror
+ *   acts on a key: `true` takes it, and the document never sees it
  * @returns {import('vue').ShallowRef<any>}
  */
 export function useRichTextEditor(options = {}) {
@@ -98,9 +100,25 @@ export function useRichTextEditor(options = {}) {
                 richTextClipboard({ codec, carriers: editing.clipboard() }),
             ],
 
-            onUpdate: ({ editor: current }) => options.onUpdate?.(codec.encode(current.getJSON()), current),
+            // Only what changed the document: tiptap also says `update` when an
+            // editor is locked or unlocked, announcing a document a new value may
+            // be about to replace, and the field would take the old one back.
+            onUpdate: ({ editor: current, transaction }) => {
+                if (transaction && !transaction.docChanged) {
+                    return;
+                }
+
+                options.onUpdate?.(codec.encode(current.getJSON()), current);
+            },
 
             onCreate: ({ editor: current }) => options.onCreate?.(current),
+
+            // A view prop rather than a listener on what holds the view: asked
+            // before the keymaps, where a listener hears the key once Enter has
+            // already split the line it was meant to send.
+            editorProps: {
+                handleKeyDown: (_, event) => options.onKeyDown?.(event, editor.value) === true,
+            },
         });
     });
 
