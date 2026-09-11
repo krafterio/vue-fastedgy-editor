@@ -146,9 +146,12 @@ async function difference(first, second) {
     return count === 0 ? null : { count, box: [left, top, right - left + 1, bottom - top + 1] };
 }
 
-/** What only writing puts on a page, laid over it rather than out in it. */
+/**
+ * What only writing puts on a page, laid over it rather than out in it, and the
+ * badge a read code block says its language in, where writing has its picker.
+ */
 const TOOLS =
-    '[data-slot="editor-image-handle"], [data-slot="editor-picker"], .ProseMirror-gapcursor, img.ProseMirror-separator';
+    '[data-slot="editor-image-handle"], [data-slot="editor-picker"], [data-slot="editor-code-block-language"], .ProseMirror-gapcursor, img.ProseMirror-separator';
 
 async function settled() {
     await nextTick();

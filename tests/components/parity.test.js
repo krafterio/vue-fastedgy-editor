@@ -68,11 +68,12 @@ function drawn(root, { strict = false } = {}) {
 
     // ProseMirror's own devices, the handle a picture is resized by and the
     // picker a code block's language is chosen with: tools for writing, laid
-    // over the page or beside what it holds, never moving it.
+    // over the page or beside what it holds, never moving it. The badge a read
+    // block says its language in stands where the picker does, and goes with it.
     copy.querySelectorAll(
         strict
             ? 'img.ProseMirror-separator, .ProseMirror-gapcursor'
-            : 'img.ProseMirror-separator, .ProseMirror-gapcursor, [data-slot="editor-image-handle"], [data-slot="editor-picker"]'
+            : 'img.ProseMirror-separator, .ProseMirror-gapcursor, [data-slot="editor-image-handle"], [data-slot="editor-picker"], [data-slot="editor-code-block-language"]'
     ).forEach((tool) => tool.remove());
 
     // A template's comments, which Vue keeps while developing and a browser

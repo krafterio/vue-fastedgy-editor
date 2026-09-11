@@ -6,6 +6,7 @@ import javascript from 'highlight.js/lib/languages/javascript';
 import python from 'highlight.js/lib/languages/python';
 import { all } from 'lowlight';
 
+import RichTextViewer from '../../components/RichTextViewer.vue';
 import { codeBlockFeature } from '../../features/code-block.js';
 import { createFeatures } from '../../features/registry.js';
 import { editorExtensionsOf } from '../built.js';
@@ -134,5 +135,28 @@ describe('the language of a code block, as on mobile', () => {
         const mounted = await mountEditor(codeBlockFeature(), block('def a(): pass', 'python'));
 
         await vi.waitFor(() => expect(mounted.find('pre code span.hljs-keyword').text()).toBe('def'));
+    });
+
+    it('says the language in a badge where the block is read, named or guessed', async () => {
+        const features = createFeatures([codeBlockFeature()]);
+        const read = (value) => mount(RichTextViewer, { props: { features, value } });
+
+        const named = read('```python\nprint(1)\n```');
+        const guessed = read('```\nconst a = () => { return 1; };\nconsole.log(a());\n```');
+
+        await vi.waitFor(() => expect(named.find('[data-slot="editor-code-block-language"]').text()).toBe('Python'));
+        await vi.waitFor(() =>
+            expect(guessed.find('[data-slot="editor-code-block-language"]').text()).toBe('JavaScript')
+        );
+        expect(named.find('[data-slot="editor-picker"]').exists()).toBe(false);
+    });
+
+    it('offers the picker rather than the badge where the block is written', async () => {
+        const mounted = await mountEditor(codeBlockFeature(), block('print(1)', 'python'));
+
+        await settled();
+
+        await vi.waitFor(() => expect(mounted.find('[data-slot="editor-picker"]').exists()).toBe(true));
+        expect(mounted.find('[data-slot="editor-code-block-language"]').exists()).toBe(false);
     });
 });

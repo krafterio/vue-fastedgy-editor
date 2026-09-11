@@ -484,6 +484,32 @@
     border-radius: var(--fe-editor-block-radius);
 }
 
+/* The language on the left, the copy button pushed to the right whatever stands before it. */
+.fe-editor [data-slot='editor-code-block-bar'] > :last-child {
+    margin-left: auto;
+}
+
+/*
+ * What a block read is written in, said rather than offered. Laid over the bar
+ * rather than out in it: the page read stands at the pixels of the page written,
+ * where the picker holds that place.
+ */
+.fe-editor [data-slot='editor-code-block-language'] {
+    position: absolute;
+    top: calc(50% + var(--fe-editor-block-padding) / 2);
+    left: var(--fe-editor-block-padding);
+    translate: 0 -50%;
+    display: inline-flex;
+    align-items: center;
+    padding: calc(0.5 * var(--fe-editor-space)) calc(2 * var(--fe-editor-space));
+    border: 1px solid var(--fe-editor-border);
+    border-radius: var(--fe-editor-chip-radius);
+    background: var(--fe-editor-surface);
+    color: var(--fe-editor-muted);
+    font-size: 0.75em;
+    line-height: 1.4;
+}
+
 /*
  * The scopes highlight.js names, as the native side colours them. A scope with
  * no rule here is drawn as plain code, which is what keeps a partial palette
@@ -550,8 +576,9 @@
 }
 
 .fe-editor [data-slot='editor-code-block-bar'] {
+    position: relative;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
     gap: calc(2 * var(--fe-editor-space));
     padding: var(--fe-editor-block-padding) var(--fe-editor-block-padding) 0;
     color: var(--fe-editor-muted);

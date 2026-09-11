@@ -40,6 +40,16 @@ const shown = computed(() => {
     return guessed ? `${labels.value.auto} · ${nameOf(guessed)}` : labels.value.auto;
 });
 
+/**
+ * What a reader is told the code is: the language the block names, or the one
+ * guessing made of it, by its name. Nothing where there is nothing to say.
+ */
+const language = computed(() => {
+    const value = props.node.attrs.language || props.extension.options.detect?.(props.node.textContent) || null;
+
+    return value ? nameOf(value) : '';
+});
+
 const choose = (language) => props.updateAttributes({ language });
 
 const copyLabel = computed(() => (copied.value ? labels.value.copied : labels.value.copy) ?? '');
@@ -58,7 +68,7 @@ onBeforeUnmount(() => clearTimeout(clearing));
 <template>
     <NodeViewWrapper data-slot="editor-code-block">
         <div data-slot="editor-code-block-bar" contenteditable="false">
-            <!-- Only where the document can be written: read, a language is not chosen. -->
+            <!-- Chosen where the document can be written, and only said where it is read. -->
             <component
                 :is="controls.picker"
                 v-if="editable"
@@ -68,6 +78,7 @@ onBeforeUnmount(() => clearTimeout(clearing));
                 :shown="shown"
                 :on-select="choose"
             />
+            <span v-else-if="language" data-slot="editor-code-block-language">{{ language }}</span>
 
             <component :is="controls.tappable" :on-tap="copy" :tooltip="copyLabel">
                 <component :is="icon(copied ? 'copied' : 'copy')" v-if="icon(copied ? 'copied' : 'copy')" />
