@@ -3,10 +3,11 @@ import { EditorContent } from '@tiptap/vue-3';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import { useFileDropZone } from 'vue-fastedgy';
 
-import { useRichTextEditor, writeInto } from '../composables/editor.js';
+import { useRichTextEditing, useRichTextEditor, writeInto } from '../composables/editor.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
 import { actionsOf, menuItemsOf } from '../menu/core.js';
+import RichTextBlocks from './internal/RichTextBlocks.vue';
 import FormatBubble from './surfaces/FormatBubble.vue';
 import SlashMenu from './surfaces/SlashMenu.vue';
 import { richTextLabels } from '../labels.js';
@@ -54,11 +55,16 @@ const model = defineModel({ type: String, default: '' });
 const codec = computed(() => props.codec ?? createMarkdownCodec(props.features));
 const menu = ref(null);
 
+/** What the features bring to write with, loaded with the editor. */
+const editing = useRichTextEditing(() => props.features);
+
+// Read when it is built rather than now: what arrives while it loads is what it
+// opens on.
 const editor = useRichTextEditor({
     features: props.features,
     codec: codec.value,
-    content: model.value,
-    editable: props.editable,
+    content: () => model.value,
+    editable: () => props.editable,
     emptyPlaceholder: props.emptyPlaceholder,
     hintPlaceholder: props.hintPlaceholder,
 
@@ -113,13 +119,15 @@ const style = computed(() => ({
  */
 const body = useTemplateRef('body');
 
-const { active: offered, over } = useFileDropZone(body, { accept: (kinds) => props.features.takes(kinds) });
+const { active: offered, over } = useFileDropZone(body, {
+    accept: (kinds) => editing.value?.takes(kinds) === true,
+});
 
-const actions = computed(() => actionsOf(props.features));
+const actions = computed(() => actionsOf(editing.value));
 
 /** What the package says, under what the application renamed. */
 const said = computed(() => richTextLabels(props.labels));
-const items = computed(() => menuItemsOf(props.features));
+const items = computed(() => menuItemsOf(editing.value));
 
 /**
  * Enter sends where a field asks it to, unless a feature is holding the key: a
@@ -132,7 +140,7 @@ function onKeyDown(event) {
         return;
     }
 
-    if (menu.value?.isOpen() || props.features.holdsEnter({ editor: current })) {
+    if (menu.value?.isOpen() || editing.value?.holdsEnter({ editor: current })) {
         return;
     }
 
@@ -156,6 +164,15 @@ function onKeyDown(event) {
                 @keydown="onKeyDown"
             />
 
+            <!--
+              The document read while the editor is built: drawn by what draws it
+              in the editor, it is the same page, and the editor takes its place
+              without anything moving. A document of any weight shows at once.
+            -->
+            <div v-else data-slot="editor-content" :style="style">
+                <RichTextBlocks :value="model" :features="features" :codec="codec" />
+            </div>
+
             <slot name="trailing" />
         </div>
 
@@ -166,7 +183,7 @@ function onKeyDown(event) {
 
             <SlashMenu v-if="slashMenu" ref="menu" :editor="editor" :items="items" :labels="said" />
 
-            <component :is="() => surface(editor, said)" v-for="(surface, at) in features.surfaces" :key="at" />
+            <component :is="() => surface(editor, said)" v-for="(surface, at) in editing?.surfaces ?? []" :key="at" />
 
             <component
                 :is="() => surface(() => editor.view.dom, said)"

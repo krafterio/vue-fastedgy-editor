@@ -30,11 +30,15 @@ export * from "./composables/inline-images.js";
 export * from "./composables/mention-sources.js";
 export * from "./composables/pictures.js";
 export * from "./extensions/clipboard.js";
+export * from "./extensions/editing.js";
 export * from "./extensions/image.js";
 export * from "./extensions/indent.js";
+export * from "./extensions/link.js";
 export * from "./extensions/mention.js";
 export * from "./extensions/mention-suggestion.js";
+export * from "./extensions/record-mention.js";
 export * from "./extensions/range-drag.js";
 export * from "./extensions/table-duplication.js";
 export * from "./extensions/schema.js";
+export { pickImageFile, pictureCarriers } from "./features/editing/image.js";
 //# sourceMappingURL=index.d.ts.map

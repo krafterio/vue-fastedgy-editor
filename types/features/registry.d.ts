@@ -1,10 +1,15 @@
 /**
  * One content feature: everything a kind of block needs, declared in one place.
- * How it renders, how it is typed and inserted, and how it is written to and
- * read back from markdown.
+ * How it is drawn and read back from markdown, and how it is written.
  *
  * Adding a feature is writing one of these and listing it in a registry; nothing
- * in the editor has to be touched.
+ * in the editor or the viewer has to be touched.
+ *
+ * What it declares here is what reading needs, the viewer's as much as the
+ * editor's: the schema, the components that draw, the markdown. What only
+ * writing needs is behind `editing`, loaded by the first editor built with the
+ * feature and by nothing that only reads, so a page that shows documents and
+ * never writes one bundles none of it.
  *
  * A markdown encoder without its decoder is half a round trip, and what a
  * feature saves comes back as nothing. A feature owns both ends or is not
@@ -12,21 +17,29 @@
  *
  * @typedef {object} RichTextFeature
  * @property {string} name
- * @property {any[]} [extensions] - What it adds to the schema
+ * @property {any[]} [extensions] - What a document of it is made of, read or written
  * @property {Record<string, any>} [views] - By node type, the component drawing it, written or read
+ * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
+ *   text, written or read
+ * @property {MarkdownContract} [markdown]
+ * @property {() => RichTextEditing | Promise<RichTextEditing>} [editing] - What only writing needs, asked for
+ *   once an editor is built, `import()` being how it stays out of what only reads
+ */
+/**
+ * What a feature brings to an editor, and to nothing that reads.
+ *
+ * @typedef {object} RichTextEditing
+ * @property {any[]} [extensions] - Added to the editor's; one named as one of the feature's own takes its place
  * @property {number} [menuGroup] - Where its "/" entries sit, lowest first
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
  * @property {(kinds: string[]) => boolean} [takes] - Whether files of these kinds, dropped, are its
- * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
- *   text, written or read
  * @property {() => Record<string, { copied?: Function, pasted?: Function }>} [clipboard] - What its nodes become
  *   on the clipboard, asked for while an editor is set up
  * @property {Array<(editor: any, labels: object) => any>} [surfaces] - What floats above the editor, each handed the
  *   editor it belongs to and the words that editor was given
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
- * @property {MarkdownContract} [markdown]
  */
 /**
  * One entry of the "/" menu.
@@ -91,30 +104,6 @@ export function createFeatures(features?: RichTextFeature[]): {
         readonly views: {
             [k: string]: any;
         };
-        /** By group, and within one by the order they were declared in. */
-        readonly menuItems: any[];
-        readonly replacedMenuItems: Set<string>;
-        /**
-         * By node type, what a node becomes on its way to the clipboard and
-         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
-         * node or null where it travels as it is.
-         *
-         * Asked for while an editor is being set up: what carries a file along
-         * may need what the application provides, the storage client first.
-         */
-        clipboard(): any;
-        /** Whether a feature takes files of these kinds, dropped on the text. */
-        takes(kinds: any): boolean;
-        readonly actions: any[];
-        /**
-         * What floats above an editor, mounted by that editor and by nobody
-         * else.
-         *
-         * Each one is handed the editor it belongs to: a popover of a document
-         * where two are open would otherwise answer for the wrong one, and the
-         * one that has the focus is rarely the one that was asked.
-         */
-        readonly surfaces: ((editor: any, labels: object) => any)[];
         /**
          * What floats over the text whether it is written or read, mounted by
          * the editor and by the viewer alike.
@@ -137,8 +126,15 @@ export function createFeatures(features?: RichTextFeature[]): {
         before(doc: any): any;
         /** Undone in reverse, so a document goes back through the passes the way it came out. */
         after(blocks: any): any;
-        /** Whether any feature is holding Enter; one is enough for the key to stay where it usually goes. */
-        holdsEnter(state: any): boolean;
+        /**
+         * What the features bring to an editor, loaded once for the set.
+         *
+         * Each feature's is asked for, which is where its `import()` runs: an
+         * application that only reads never calls this, and never loads them.
+         *
+         * @returns {Promise<RichTextEditingSet>}
+         */
+        editing(): Promise<RichTextEditingSet>;
     };
     /** The same, given the names in one list. */
     withoutAll(names: any): {
@@ -160,30 +156,6 @@ export function createFeatures(features?: RichTextFeature[]): {
         readonly views: {
             [k: string]: any;
         };
-        /** By group, and within one by the order they were declared in. */
-        readonly menuItems: any[];
-        readonly replacedMenuItems: Set<string>;
-        /**
-         * By node type, what a node becomes on its way to the clipboard and
-         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
-         * node or null where it travels as it is.
-         *
-         * Asked for while an editor is being set up: what carries a file along
-         * may need what the application provides, the storage client first.
-         */
-        clipboard(): any;
-        /** Whether a feature takes files of these kinds, dropped on the text. */
-        takes(kinds: any): boolean;
-        readonly actions: any[];
-        /**
-         * What floats above an editor, mounted by that editor and by nobody
-         * else.
-         *
-         * Each one is handed the editor it belongs to: a popover of a document
-         * where two are open would otherwise answer for the wrong one, and the
-         * one that has the focus is rarely the one that was asked.
-         */
-        readonly surfaces: ((editor: any, labels: object) => any)[];
         /**
          * What floats over the text whether it is written or read, mounted by
          * the editor and by the viewer alike.
@@ -206,8 +178,15 @@ export function createFeatures(features?: RichTextFeature[]): {
         before(doc: any): any;
         /** Undone in reverse, so a document goes back through the passes the way it came out. */
         after(blocks: any): any;
-        /** Whether any feature is holding Enter; one is enough for the key to stay where it usually goes. */
-        holdsEnter(state: any): boolean;
+        /**
+         * What the features bring to an editor, loaded once for the set.
+         *
+         * Each feature's is asked for, which is where its `import()` runs: an
+         * application that only reads never calls this, and never loads them.
+         *
+         * @returns {Promise<RichTextEditingSet>}
+         */
+        editing(): Promise<RichTextEditingSet>;
     };
     /** The same set plus [added], which win any node type they share with it. */
     and(added: any): {
@@ -229,30 +208,6 @@ export function createFeatures(features?: RichTextFeature[]): {
         readonly views: {
             [k: string]: any;
         };
-        /** By group, and within one by the order they were declared in. */
-        readonly menuItems: any[];
-        readonly replacedMenuItems: Set<string>;
-        /**
-         * By node type, what a node becomes on its way to the clipboard and
-         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
-         * node or null where it travels as it is.
-         *
-         * Asked for while an editor is being set up: what carries a file along
-         * may need what the application provides, the storage client first.
-         */
-        clipboard(): any;
-        /** Whether a feature takes files of these kinds, dropped on the text. */
-        takes(kinds: any): boolean;
-        readonly actions: any[];
-        /**
-         * What floats above an editor, mounted by that editor and by nobody
-         * else.
-         *
-         * Each one is handed the editor it belongs to: a popover of a document
-         * where two are open would otherwise answer for the wrong one, and the
-         * one that has the focus is rarely the one that was asked.
-         */
-        readonly surfaces: ((editor: any, labels: object) => any)[];
         /**
          * What floats over the text whether it is written or read, mounted by
          * the editor and by the viewer alike.
@@ -275,8 +230,15 @@ export function createFeatures(features?: RichTextFeature[]): {
         before(doc: any): any;
         /** Undone in reverse, so a document goes back through the passes the way it came out. */
         after(blocks: any): any;
-        /** Whether any feature is holding Enter; one is enough for the key to stay where it usually goes. */
-        holdsEnter(state: any): boolean;
+        /**
+         * What the features bring to an editor, loaded once for the set.
+         *
+         * Each feature's is asked for, which is where its `import()` runs: an
+         * application that only reads never calls this, and never loads them.
+         *
+         * @returns {Promise<RichTextEditingSet>}
+         */
+        editing(): Promise<RichTextEditingSet>;
     };
     readonly extensions: any[];
     /**
@@ -290,30 +252,6 @@ export function createFeatures(features?: RichTextFeature[]): {
     readonly views: {
         [k: string]: any;
     };
-    /** By group, and within one by the order they were declared in. */
-    readonly menuItems: any[];
-    readonly replacedMenuItems: Set<string>;
-    /**
-     * By node type, what a node becomes on its way to the clipboard and
-     * back, `{ copied(node), pasted(node) }`, each answering a promise of the
-     * node or null where it travels as it is.
-     *
-     * Asked for while an editor is being set up: what carries a file along
-     * may need what the application provides, the storage client first.
-     */
-    clipboard(): any;
-    /** Whether a feature takes files of these kinds, dropped on the text. */
-    takes(kinds: any): boolean;
-    readonly actions: any[];
-    /**
-     * What floats above an editor, mounted by that editor and by nobody
-     * else.
-     *
-     * Each one is handed the editor it belongs to: a popover of a document
-     * where two are open would otherwise answer for the wrong one, and the
-     * one that has the focus is rarely the one that was asked.
-     */
-    readonly surfaces: ((editor: any, labels: object) => any)[];
     /**
      * What floats over the text whether it is written or read, mounted by
      * the editor and by the viewer alike.
@@ -336,16 +274,28 @@ export function createFeatures(features?: RichTextFeature[]): {
     before(doc: any): any;
     /** Undone in reverse, so a document goes back through the passes the way it came out. */
     after(blocks: any): any;
-    /** Whether any feature is holding Enter; one is enough for the key to stay where it usually goes. */
-    holdsEnter(state: any): boolean;
+    /**
+     * What the features bring to an editor, loaded once for the set.
+     *
+     * Each feature's is asked for, which is where its `import()` runs: an
+     * application that only reads never calls this, and never loads them.
+     *
+     * @returns {Promise<RichTextEditingSet>}
+     */
+    editing(): Promise<RichTextEditingSet>;
 };
 /**
  * One content feature: everything a kind of block needs, declared in one place.
- * How it renders, how it is typed and inserted, and how it is written to and
- * read back from markdown.
+ * How it is drawn and read back from markdown, and how it is written.
  *
  * Adding a feature is writing one of these and listing it in a registry; nothing
- * in the editor has to be touched.
+ * in the editor or the viewer has to be touched.
+ *
+ * What it declares here is what reading needs, the viewer's as much as the
+ * editor's: the schema, the components that draw, the markdown. What only
+ * writing needs is behind `editing`, loaded by the first editor built with the
+ * feature and by nothing that only reads, so a page that shows documents and
+ * never writes one bundles none of it.
  *
  * A markdown encoder without its decoder is half a round trip, and what a
  * feature saves comes back as nothing. A feature owns both ends or is not
@@ -354,13 +304,33 @@ export function createFeatures(features?: RichTextFeature[]): {
 export type RichTextFeature = {
     name: string;
     /**
-     * - What it adds to the schema
+     * - What a document of it is made of, read or written
      */
     extensions?: any[] | undefined;
     /**
      * - By node type, the component drawing it, written or read
      */
     views?: Record<string, any> | undefined;
+    /**
+     * - What floats over the
+     * text, written or read
+     */
+    readingSurfaces?: ((text: () => Element | null, labels: object) => any)[] | undefined;
+    markdown?: MarkdownContract | undefined;
+    /**
+     * - What only writing needs, asked for
+     * once an editor is built, `import()` being how it stays out of what only reads
+     */
+    editing?: (() => RichTextEditing | Promise<RichTextEditing>) | undefined;
+};
+/**
+ * What a feature brings to an editor, and to nothing that reads.
+ */
+export type RichTextEditing = {
+    /**
+     * - Added to the editor's; one named as one of the feature's own takes its place
+     */
+    extensions?: any[] | undefined;
     /**
      * - Where its "/" entries sit, lowest first
      */
@@ -375,11 +345,6 @@ export type RichTextFeature = {
      * - Whether files of these kinds, dropped, are its
      */
     takes?: ((kinds: string[]) => boolean) | undefined;
-    /**
-     * - What floats over the
-     * text, written or read
-     */
-    readingSurfaces?: ((text: () => Element | null, labels: object) => any)[] | undefined;
     /**
      * - What its nodes become
      * on the clipboard, asked for while an editor is set up
@@ -397,7 +362,6 @@ export type RichTextFeature = {
      * - Enter belongs to it right now
      */
     holdsEnter?: ((state: any) => boolean) | undefined;
-    markdown?: MarkdownContract | undefined;
 };
 /**
  * One entry of the "/" menu.
@@ -454,4 +418,48 @@ export type MarkdownContract = {
      */
     after?: ((blocks: object[]) => object[]) | undefined;
 };
+/**
+ * What the features of a set bring to an editor, once loaded.
+ */
+export type RichTextEditingSet = ReturnType<typeof editingOf>;
+/**
+ * What the features of a set bring to an editor, once loaded.
+ *
+ * @typedef {ReturnType<typeof editingOf>} RichTextEditingSet
+ */
+/**
+ * What the features bring to an editor, [parts] in the order they were declared.
+ *
+ * @param {RichTextEditing[]} parts
+ */
+declare function editingOf(parts: RichTextEditing[]): {
+    readonly extensions: any[];
+    /** By group, and within one by the order they were declared in. */
+    readonly menuItems: any[];
+    readonly replacedMenuItems: Set<string>;
+    /**
+     * By node type, what a node becomes on its way to the clipboard and
+     * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+     * node or null where it travels as it is.
+     *
+     * Asked for while an editor is being set up: what carries a file along
+     * may need what the application provides, the storage client first.
+     */
+    clipboard(): any;
+    /** Whether a feature takes files of these kinds, dropped on the text. */
+    takes(kinds: any): boolean;
+    readonly actions: any[];
+    /**
+     * What floats above an editor, mounted by that editor and by nobody
+     * else.
+     *
+     * Each one is handed the editor it belongs to: a popover of a document
+     * where two are open would otherwise answer for the wrong one, and the
+     * one that has the focus is rarely the one that was asked.
+     */
+    readonly surfaces: ((editor: any, labels: object) => any)[];
+    /** Whether any feature is holding Enter; one is enough for the key to stay where it usually goes. */
+    holdsEnter(state: any): boolean;
+};
+export {};
 //# sourceMappingURL=registry.d.ts.map

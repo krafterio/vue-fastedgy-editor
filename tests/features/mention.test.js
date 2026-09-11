@@ -1,11 +1,10 @@
 import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
-import { richTextExtensions } from '../../extensions/schema.js';
-
 import { mentionFeature, pathAddressing } from '../../features/mention.js';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
+import { editorExtensionsOf } from '../built.js';
 
 const addressing = pathAddressing({ note: '/notes/{id}', user: '/household/members/{id}' });
 const codec = createMarkdownCodec(createFeatures([mentionFeature({ addressing })]));
@@ -49,10 +48,10 @@ describe('mention', () => {
 });
 
 describe('while a mention is being written', () => {
-    const editorOf = (feature) =>
+    const editorOf = async (feature) =>
         new Editor({
             element: document.createElement('div'),
-            extensions: richTextExtensions(createFeatures([feature])),
+            extensions: await editorExtensionsOf(createFeatures([feature])),
             content: '<p></p>',
         });
 
@@ -68,9 +67,9 @@ describe('while a mention is being written', () => {
         }
     }
 
-    it('keeps the markdown rules out of the query', () => {
+    it('keeps the markdown rules out of the query', async () => {
         const feature = mentionFeature({ sources: [{ trigger: '@', model: 'user', search: async () => [] }] });
-        const editor = editorOf(feature);
+        const editor = await editorOf(feature);
 
         type(editor, '@**gras**');
 
@@ -83,9 +82,9 @@ describe('while a mention is being written', () => {
         editor.destroy();
     });
 
-    it('lets them through once nothing is being written', () => {
+    it('lets them through once nothing is being written', async () => {
         const feature = mentionFeature({ sources: [{ trigger: '@', model: 'user', search: async () => [] }] });
-        const editor = editorOf(feature);
+        const editor = await editorOf(feature);
 
         type(editor, '**gras** ');
 
@@ -94,7 +93,7 @@ describe('while a mention is being written', () => {
         editor.destroy();
     });
 
-    it('offers one menu entry per source, the highest priority first', () => {
+    it('offers one menu entry per source, the highest priority first', async () => {
         const feature = mentionFeature({
             sources: [
                 { trigger: '$', model: 'note', search: async () => [] },
@@ -102,6 +101,8 @@ describe('while a mention is being written', () => {
             ],
         });
 
-        expect(feature.menuItems.map((item) => item.name)).toEqual(['user', 'note']);
+        const editing = await feature.editing();
+
+        expect(editing.menuItems.map((item) => item.name)).toEqual(['user', 'note']);
     });
 });

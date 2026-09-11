@@ -2,19 +2,19 @@ import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
 import { createFeatures } from '../../features/registry.js';
-import { richTextExtensions } from '../../extensions/schema.js';
+import { editorExtensionsOf } from '../built.js';
 import { codeBlockFeature } from '../../features/code-block.js';
 
-const editorWithFence = () =>
+const editorWithFence = async () =>
     new Editor({
         element: document.createElement('div'),
-        extensions: richTextExtensions(createFeatures([codeBlockFeature()])),
+        extensions: await editorExtensionsOf(createFeatures([codeBlockFeature()])),
         content: { type: 'doc', content: [{ type: 'codeBlock', content: [{ type: 'text', text: 'x' }] }] },
     });
 
 describe('typing inside a fence', () => {
-    it('writes the markdown triggers as the characters they are', () => {
-        const editor = editorWithFence();
+    it('writes the markdown triggers as the characters they are', async () => {
+        const editor = await editorWithFence();
 
         editor.commands.setTextSelection(3);
         editor.commands.insertContent('\n# heading ');

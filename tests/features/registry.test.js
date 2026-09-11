@@ -4,15 +4,29 @@ import { createFeatures } from '../../features/registry.js';
 
 const feature = (name, extra = {}) => ({ name, ...extra });
 
+/** A feature whose writing is [part], loaded as a feature's is, later. */
+const writing = (name, part) => feature(name, { editing: async () => part });
+
 describe('createFeatures', () => {
-    it('sorts menu entries by group, then by the order they were declared in', () => {
+    it('sorts menu entries by group, then by the order they were declared in', async () => {
         const set = createFeatures([
-            feature('mention', { menuGroup: 1, menuItems: ['mention'] }),
-            feature('table', { menuItems: ['table'] }),
-            feature('image', { menuItems: ['image'] }),
+            writing('mention', { menuGroup: 1, menuItems: ['mention'] }),
+            writing('table', { menuItems: ['table'] }),
+            writing('image', { menuItems: ['image'] }),
         ]);
 
-        expect(set.menuItems).toEqual(['table', 'image', 'mention']);
+        expect((await set.editing()).menuItems).toEqual(['table', 'image', 'mention']);
+    });
+
+    it('loads what writing needs once for a set, and only when it is asked for', async () => {
+        let loaded = 0;
+        const set = createFeatures([feature('a', { editing: async () => (loaded++, {}) })]);
+
+        expect(loaded).toBe(0);
+
+        await Promise.all([set.editing(), set.editing()]);
+
+        expect(loaded).toBe(1);
     });
 
     it('lets the last feature declared win a node type', () => {
@@ -47,10 +61,10 @@ describe('createFeatures', () => {
         expect(set.without('image').features.map((one) => one.name)).toEqual(['link']);
     });
 
-    it('holds Enter as soon as a single feature holds it', () => {
-        const set = createFeatures([feature('a'), feature('b', { holdsEnter: () => true })]);
+    it('holds Enter as soon as a single feature holds it', async () => {
+        const set = createFeatures([feature('a'), writing('b', { holdsEnter: () => true })]);
 
-        expect(set.holdsEnter({})).toBe(true);
-        expect(createFeatures([feature('a')]).holdsEnter({})).toBe(false);
+        expect((await set.editing()).holdsEnter({})).toBe(true);
+        expect((await createFeatures([feature('a')]).editing()).holdsEnter({})).toBe(false);
     });
 });

@@ -4,19 +4,22 @@ import { defineComponent, h, nextTick } from 'vue';
 import { describe, expect, it } from 'vitest';
 
 import { createFeatures } from '../../features/registry.js';
-import { richTextExtensions } from '../../extensions/schema.js';
 import { imageFeature } from '../../features/image.js';
+import { editorExtensionsOf } from '../built.js';
 
-const mountEditor = (content) =>
-    mount(
+const mountEditor = async (content) => {
+    const extensions = await editorExtensionsOf(createFeatures([imageFeature()]));
+
+    return mount(
         defineComponent({
             setup() {
-                const editor = useEditor({ extensions: richTextExtensions(createFeatures([imageFeature()])), content });
+                const editor = useEditor({ extensions, content });
 
                 return () => h('div', editor.value ? [h(EditorContent, { editor: editor.value })] : []);
             },
         })
     );
+};
 
 const documentOf = (src, attrs = {}) => ({
     type: 'doc',
@@ -27,7 +30,7 @@ describe('ImageView', () => {
     it('keeps the press off the document when the picture is clicked', async () => {
         // A paragraph before it, or the picture is the whole document and the
         // caret has nowhere else to be.
-        const mounted = mountEditor({
+        const mounted = await mountEditor({
             type: 'doc',
             content: [
                 { type: 'paragraph', content: [{ type: 'text', text: 'du texte' }] },
@@ -49,7 +52,7 @@ describe('ImageView', () => {
     });
 
     it('takes hold of the picture when the handle is taken hold of', async () => {
-        const mounted = mountEditor(documentOf('https://melimelo.app/a.png'));
+        const mounted = await mountEditor(documentOf('https://melimelo.app/a.png'));
 
         await nextTick();
         await nextTick();
@@ -65,7 +68,7 @@ describe('ImageView', () => {
     });
 
     it('draws a picture at the size it was given', async () => {
-        const mounted = mountEditor(documentOf('https://melimelo.app/a.png', { width: 420, height: 280 }));
+        const mounted = await mountEditor(documentOf('https://melimelo.app/a.png', { width: 420, height: 280 }));
 
         await nextTick();
         await nextTick();
@@ -77,7 +80,7 @@ describe('ImageView', () => {
     });
 
     it('reads an attachment through the storage client, never by hand', async () => {
-        const mounted = mountEditor(documentOf('attachment:15'));
+        const mounted = await mountEditor(documentOf('attachment:15'));
 
         await nextTick();
         await nextTick();
@@ -86,7 +89,7 @@ describe('ImageView', () => {
     });
 
     it('keeps a data URI as the picture it already is', async () => {
-        const mounted = mountEditor(documentOf('data:image/png;base64,iVBORw0KGgo='));
+        const mounted = await mountEditor(documentOf('data:image/png;base64,iVBORw0KGgo='));
 
         await nextTick();
         await nextTick();

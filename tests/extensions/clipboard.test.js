@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import { coreExtensions } from '../../extensions/schema.js';
 import { looksLikeMarkdown, pasteFromClipboard, richTextClipboard } from '../../extensions/clipboard.js';
-import { imageFeature, pictureCarriers } from '../../features/image.js';
+import { pictureCarriers } from '../../features/editing/image.js';
+import { imageFeature } from '../../features/image.js';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
 

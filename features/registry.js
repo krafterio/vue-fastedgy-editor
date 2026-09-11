@@ -2,11 +2,16 @@ import { markRaw } from 'vue';
 
 /**
  * One content feature: everything a kind of block needs, declared in one place.
- * How it renders, how it is typed and inserted, and how it is written to and
- * read back from markdown.
+ * How it is drawn and read back from markdown, and how it is written.
  *
  * Adding a feature is writing one of these and listing it in a registry; nothing
- * in the editor has to be touched.
+ * in the editor or the viewer has to be touched.
+ *
+ * What it declares here is what reading needs, the viewer's as much as the
+ * editor's: the schema, the components that draw, the markdown. What only
+ * writing needs is behind `editing`, loaded by the first editor built with the
+ * feature and by nothing that only reads, so a page that shows documents and
+ * never writes one bundles none of it.
  *
  * A markdown encoder without its decoder is half a round trip, and what a
  * feature saves comes back as nothing. A feature owns both ends or is not
@@ -14,21 +19,30 @@ import { markRaw } from 'vue';
  *
  * @typedef {object} RichTextFeature
  * @property {string} name
- * @property {any[]} [extensions] - What it adds to the schema
+ * @property {any[]} [extensions] - What a document of it is made of, read or written
  * @property {Record<string, any>} [views] - By node type, the component drawing it, written or read
+ * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
+ *   text, written or read
+ * @property {MarkdownContract} [markdown]
+ * @property {() => RichTextEditing | Promise<RichTextEditing>} [editing] - What only writing needs, asked for
+ *   once an editor is built, `import()` being how it stays out of what only reads
+ */
+
+/**
+ * What a feature brings to an editor, and to nothing that reads.
+ *
+ * @typedef {object} RichTextEditing
+ * @property {any[]} [extensions] - Added to the editor's; one named as one of the feature's own takes its place
  * @property {number} [menuGroup] - Where its "/" entries sit, lowest first
  * @property {string[]} [replacesMenuItems] - Entries of the core menu it stands in for
  * @property {object[]} [menuItems]
  * @property {object[]} [actions]
  * @property {(kinds: string[]) => boolean} [takes] - Whether files of these kinds, dropped, are its
- * @property {Array<(text: () => Element|null, labels: object) => any>} [readingSurfaces] - What floats over the
- *   text, written or read
  * @property {() => Record<string, { copied?: Function, pasted?: Function }>} [clipboard] - What its nodes become
  *   on the clipboard, asked for while an editor is set up
  * @property {Array<(editor: any, labels: object) => any>} [surfaces] - What floats above the editor, each handed the
  *   editor it belongs to and the words that editor was given
  * @property {(state: any) => boolean} [holdsEnter] - Enter belongs to it right now
- * @property {MarkdownContract} [markdown]
  */
 
 /**
@@ -78,6 +92,9 @@ import { markRaw } from 'vue';
 export function createFeatures(features = []) {
     const merge = (key) => Object.assign({}, ...features.map((feature) => feature.markdown?.[key] ?? {}));
 
+    // Asked for by the first editor built with this set, and shared by the rest.
+    let editing = null;
+
     return {
         features,
 
@@ -114,51 +131,6 @@ export function createFeatures(features = []) {
             // A component, not state: read through a reactive set of features, it
             // stays the component it is.
             return Object.fromEntries(Object.entries(views).map(([name, view]) => [name, markRaw(view)]));
-        },
-
-        /** By group, and within one by the order they were declared in. */
-        get menuItems() {
-            return features
-                .map((feature, at) => ({ feature, at }))
-                .sort((a, b) => (a.feature.menuGroup ?? 0) - (b.feature.menuGroup ?? 0) || a.at - b.at)
-                .flatMap(({ feature }) => feature.menuItems ?? []);
-        },
-
-        get replacedMenuItems() {
-            return new Set(features.flatMap((feature) => feature.replacesMenuItems ?? []));
-        },
-
-        /**
-         * By node type, what a node becomes on its way to the clipboard and
-         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
-         * node or null where it travels as it is.
-         *
-         * Asked for while an editor is being set up: what carries a file along
-         * may need what the application provides, the storage client first.
-         */
-        clipboard() {
-            return Object.assign({}, ...features.map((feature) => feature.clipboard?.() ?? {}));
-        },
-
-        /** Whether a feature takes files of these kinds, dropped on the text. */
-        takes(kinds) {
-            return kinds.length > 0 && features.some((feature) => feature.takes?.(kinds) === true);
-        },
-
-        get actions() {
-            return features.flatMap((feature) => feature.actions ?? []);
-        },
-
-        /**
-         * What floats above an editor, mounted by that editor and by nobody
-         * else.
-         *
-         * Each one is handed the editor it belongs to: a popover of a document
-         * where two are open would otherwise answer for the wrong one, and the
-         * one that has the focus is rarely the one that was asked.
-         */
-        get surfaces() {
-            return features.flatMap((feature) => feature.surfaces ?? []);
         },
 
         /**
@@ -215,9 +187,87 @@ export function createFeatures(features = []) {
                 .reduce((shaped, feature) => feature.markdown?.after?.(shaped) ?? shaped, blocks);
         },
 
+        /**
+         * What the features bring to an editor, loaded once for the set.
+         *
+         * Each feature's is asked for, which is where its `import()` runs: an
+         * application that only reads never calls this, and never loads them.
+         *
+         * @returns {Promise<RichTextEditingSet>}
+         */
+        editing() {
+            editing ??= Promise.all(features.map(async (feature) => (await feature.editing?.()) ?? {})).then(editingOf);
+
+            return editing;
+        },
+    };
+}
+
+/**
+ * What the features of a set bring to an editor, once loaded.
+ *
+ * @typedef {ReturnType<typeof editingOf>} RichTextEditingSet
+ */
+
+/**
+ * What the features bring to an editor, [parts] in the order they were declared.
+ *
+ * @param {RichTextEditing[]} parts
+ */
+function editingOf(parts) {
+    return {
+        get extensions() {
+            return parts.flatMap((part) => part.extensions ?? []);
+        },
+
+        /** By group, and within one by the order they were declared in. */
+        get menuItems() {
+            return parts
+                .map((part, at) => ({ part, at }))
+                .sort((a, b) => (a.part.menuGroup ?? 0) - (b.part.menuGroup ?? 0) || a.at - b.at)
+                .flatMap(({ part }) => part.menuItems ?? []);
+        },
+
+        get replacedMenuItems() {
+            return new Set(parts.flatMap((part) => part.replacesMenuItems ?? []));
+        },
+
+        /**
+         * By node type, what a node becomes on its way to the clipboard and
+         * back, `{ copied(node), pasted(node) }`, each answering a promise of the
+         * node or null where it travels as it is.
+         *
+         * Asked for while an editor is being set up: what carries a file along
+         * may need what the application provides, the storage client first.
+         */
+        clipboard() {
+            return Object.assign({}, ...parts.map((part) => part.clipboard?.() ?? {}));
+        },
+
+        /** Whether a feature takes files of these kinds, dropped on the text. */
+        takes(kinds) {
+            return kinds.length > 0 && parts.some((part) => part.takes?.(kinds) === true);
+        },
+
+        get actions() {
+            return parts.flatMap((part) => part.actions ?? []);
+        },
+
+        /**
+         * What floats above an editor, mounted by that editor and by nobody
+         * else.
+         *
+         * Each one is handed the editor it belongs to: a popover of a document
+         * where two are open would otherwise answer for the wrong one, and the
+         * one that has the focus is rarely the one that was asked.
+         */
+        get surfaces() {
+            return parts.flatMap((part) => part.surfaces ?? []);
+        },
+
         /** Whether any feature is holding Enter; one is enough for the key to stay where it usually goes. */
         holdsEnter(state) {
-            return features.some((feature) => feature.holdsEnter?.(state) === true);
+            return parts.some((part) => part.holdsEnter?.(state) === true);
         },
     };
 }

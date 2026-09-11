@@ -1,9 +1,13 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { useAnchoredRect } from '../../composables/anchored.js';
-import AnchoredSurface from '../internal/AnchoredSurface.vue';
-import { useRichTextControls } from '../../composables/controls.js';
+
+/**
+ * The card itself, loaded the first time a mention is tapped: what floats and
+ * what it is drawn with stay out of a page where nobody taps one.
+ */
+const MentionCard = defineAsyncComponent(() => import('./MentionCard.vue'));
 
 const props = defineProps({
     /** The element the text is drawn in, read once it is drawn. */
@@ -19,11 +23,12 @@ const props = defineProps({
     labels: { type: Object, default: () => ({}) },
 });
 
-const controls = useRichTextControls();
-
 const chip = ref(null);
 const preview = ref(null);
 const loading = ref(false);
+
+// Whether a mention was ever tapped here, which is when the card is loaded.
+const asked = ref(false);
 
 // Per instance, and per chip: what was read once is read once.
 const read = new Map();
@@ -52,6 +57,7 @@ async function show(element) {
         return;
     }
 
+    asked.value = true;
     chip.value = element;
     follow();
 
@@ -117,46 +123,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <AnchoredSurface :open="chip !== null && (loading || preview !== null)" :rect="rect" @close="chip = null">
-        <div class="fe-editor-floating" data-slot="editor-mention-preview">
-            <template v-if="loading">
-                <component :is="controls.placeholder" :width="180" :height="14" />
-                <component :is="controls.placeholder" :width="120" :height="12" />
-            </template>
-
-            <!--
-              Guarded rather than left to the surface being shut: what is drawn
-              is settled in the same flush as what closed it, so the card renders
-              once more with nothing to show before reka takes it away.
-            -->
-            <template v-else-if="preview">
-                <div data-slot="editor-mention-preview-head">
-                    <component
-                        :is="preview.leading"
-                        v-if="preview.leading"
-                        data-slot="editor-mention-preview-leading"
-                    />
-
-                    <div data-slot="editor-mention-preview-said">
-                        <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
-
-                        <p v-if="preview.subtitle" data-slot="editor-mention-preview-subtitle">
-                            {{ preview.subtitle }}
-                        </p>
-                    </div>
-                </div>
-
-                <dl v-if="preview.facts?.length" data-slot="editor-mention-preview-facts">
-                    <template v-for="[said, value] in preview.facts" :key="said">
-                        <dt>{{ said }}</dt>
-                        <dd>{{ value }}</dd>
-                    </template>
-                </dl>
-
-                <div v-if="open && openable" data-slot="editor-mention-preview-action">
-                    <component :is="controls.button" :label="labels.open ?? ''" :on-tap="follows" />
-                </div>
-            </template>
-        </div>
-    </AnchoredSurface>
+    <MentionCard
+        v-if="asked"
+        :shown="chip !== null && (loading || preview !== null)"
+        :rect="rect"
+        :loading="loading"
+        :preview="preview"
+        :action="Boolean(open) && openable"
+        :labels="labels"
+        @close="chip = null"
+        @follow="follows"
+    />
 </template>

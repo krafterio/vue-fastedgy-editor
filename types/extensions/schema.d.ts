@@ -10,12 +10,12 @@
  * what markdown has no word for, rebuilt on the way in from the items that sit
  * at the same depth.
  *
- * @param {{ history?: boolean }} [options]
+ * What only writing needs is not here but in `editingExtensions`: a reader reads
+ * a document with these, and nothing else.
+ *
  * @returns {any[]}
  */
-export function coreExtensions(options?: {
-    history?: boolean;
-}): any[];
+export function coreExtensions(): any[];
 /**
  * A node that can be read and not written: no rule turning what is typed into
  * one, no shortcut, nothing pasted becoming one, a code editor's clipboard
@@ -29,15 +29,13 @@ export function withoutAuthoring(extension: any): any;
  * What a rich text of [features] is made of, the one list the editor and the
  * viewer are both built from, a page's included.
  *
- * The core's nodes, less those a feature brings in their place, and each node a
- * feature draws with a component drawn by it. A feature says each of these once,
- * in the registry, and they reach the editor and the viewer alike.
+ * The core's nodes, less those a feature brings in their place. A feature says
+ * each of these once, in the registry, and they reach the editor and the viewer
+ * alike: the editor adds to them what only writing needs, the components the
+ * features draw with mounted as node views among it (`richTextEditorExtensions`).
  *
  * @param {ReturnType<import('../features/registry.js').createFeatures>} features
- * @param {{ history?: boolean }} [options]
  * @returns {any[]}
  */
-export function richTextExtensions(features: ReturnType<typeof import("../index.js").createFeatures>, options?: {
-    history?: boolean;
-}): any[];
+export function richTextExtensions(features: ReturnType<typeof import("../index.js").createFeatures>): any[];
 //# sourceMappingURL=schema.d.ts.map

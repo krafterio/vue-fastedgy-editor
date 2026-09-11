@@ -7,6 +7,7 @@ import { codeBlockFeature } from '../../features/code-block.js';
 import { imageFeature } from '../../features/image.js';
 import { todoListFeature } from '../../features/todo-list.js';
 import { createFeatures } from '../../features/registry.js';
+import { built } from '../built.js';
 
 const features = createFeatures([codeBlockFeature()]);
 
@@ -33,8 +34,7 @@ async function editorOf(props = {}) {
 
     mountedEditors.push(mounted);
 
-    await nextTick();
-    await nextTick();
+    await built(mounted);
 
     return mounted;
 }
@@ -383,5 +383,30 @@ describe('resetWhenEmpty', () => {
         await nextTick();
 
         expect(editor.getJSON().content[0].type).toBe('heading');
+    });
+});
+
+describe('an editor locked and unlocked', () => {
+    const PICTURE = 'data:image/png;base64,iVBORw0KGgo=';
+    const writable = createFeatures([codeBlockFeature(), todoListFeature(), imageFeature()]);
+    const tools = (editor) => ({
+        picker: editor.find('[data-slot="editor-picker"]').exists(),
+        handle: editor.find('[data-slot="editor-image-handle"]').exists(),
+        check: !editor.get('[data-slot="editor-task-check"]').element.disabled,
+    });
+
+    it('takes its writing tools away with it, and gives them back', async () => {
+        const editor = await editorOf({
+            features: writable,
+            modelValue: `\`\`\`dart\nvoid main() {}\n\`\`\`\n\n- [ ] à faire\n\n![](${PICTURE})`,
+        });
+
+        expect(tools(editor)).toEqual({ picker: true, handle: true, check: true });
+
+        await editor.setProps({ editable: false });
+        expect(tools(editor)).toEqual({ picker: false, handle: false, check: false });
+
+        await editor.setProps({ editable: true });
+        expect(tools(editor)).toEqual({ picker: true, handle: true, check: true });
     });
 });

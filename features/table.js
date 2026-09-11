@@ -1,8 +1,4 @@
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
-import { h } from 'vue';
-
-import TableHandles from '../components/surfaces/TableHandles.vue';
-import { TableDuplication } from '../extensions/table-duplication.js';
 
 import { BLANK_PARAGRAPH, encodeInline } from '../markdown/encode.js';
 import { inlineContent } from '../markdown/decode.js';
@@ -47,32 +43,13 @@ export function tableFeature(options = {}) {
 
     return {
         name: 'table',
-        extensions: [Table.configure({ resizable: true }), TableRow, TableHeader, TableCell, TableDuplication],
-
-        surfaces: [(editor, labels) => h(TableHandles, { editor, labels: { ...labels, ...options.labels } })],
-
-        // Beside the blocks a button already makes: a table is reached about as
-        // often as a picture, and the "/" menu costs a character typed and a
-        // list read.
-        actions: [
-            {
-                name: 'table',
-                glyph: 'table',
-                group: 3,
-                isActive: () => false,
-
-                // Only on a line of its own: a table is not something a
-                // paragraph turns into, it is something written between two.
-                isEnabled: (editor) => editor.state.selection.empty,
-
-                run: (editor) => editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: false }).run(),
-            },
-        ],
+        extensions: [Table.configure({ resizable: true }), TableRow, TableHeader, TableCell],
         markdown: {
             encoders: { table: (node) => encodeTable(node, byDefault) },
             decoders: { table_open: readTable, paragraph_open: readWidths },
             after: foldWidths,
         },
+        editing: () => import('./editing/table.js').then((module) => module.tableEditing(options)),
     };
 }
 

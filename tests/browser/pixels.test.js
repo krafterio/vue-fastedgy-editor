@@ -19,6 +19,7 @@ import { plusUnderlineFeature } from '../../features/plus-underline.js';
 import { createFeatures } from '../../features/registry.js';
 import { tableFeature } from '../../features/table.js';
 import { todoListFeature } from '../../features/todo-list.js';
+import { decoratingFeature } from '../fixtures/decorating.js';
 
 const mounted = [];
 
@@ -146,7 +147,8 @@ async function difference(first, second) {
 }
 
 /** What only writing puts on a page, laid over it rather than out in it. */
-const TOOLS = '[data-slot="editor-image-handle"], .ProseMirror-gapcursor, img.ProseMirror-separator';
+const TOOLS =
+    '[data-slot="editor-image-handle"], [data-slot="editor-picker"], .ProseMirror-gapcursor, img.ProseMirror-separator';
 
 async function settled() {
     await nextTick();
@@ -180,16 +182,52 @@ const layoutOf = (root) => {
 const drawnPicture = (image) => image.complete && image.naturalWidth > 0;
 
 /**
+ * The page the renderings are drawn on, in its two themes.
+ *
+ * The editor declares no dark mode of its own: it reads the application's
+ * tokens, and an application in dark mode changes them. These are the shadcn
+ * tokens of an application in dark mode, melimelo's.
+ */
+const THEMES = {
+    light: 'background:#fff',
+    dark: [
+        '--background:oklch(0.19 0 0)',
+        '--foreground:oklch(0.985 0 0)',
+        '--card:oklch(0.19 0 0)',
+        '--primary:oklch(0.985 0 0)',
+        '--muted:oklch(0.269 0 0)',
+        '--muted-foreground:oklch(0.708 0 0)',
+        '--accent:oklch(0.25 0 0)',
+        '--destructive:oklch(0.396 0.141 25.723)',
+        '--border:oklch(0.269 0 0)',
+        'background:var(--background)',
+        'color:var(--foreground)',
+    ].join(';'),
+};
+
+/**
  * One rendering, drawn alone, at the top left of the page, then taken away.
  *
  * Alone and at the same place for every rendering: a capture scrolls the page
  * to what it captures, and the same element drawn lower down is rasterised a
  * little differently, which is noise and not a difference between renderings.
  */
-async function capture(component, props) {
+/**
+ * Whether a capture was taken yet. The first one a test takes lays a line
+ * holding inline code out a pixel taller than every capture after it, whatever
+ * is drawn before it: it is taken twice, and the first one thrown away.
+ */
+let warmed = false;
+
+async function capture(component, props, theme = THEMES.light) {
+    if (!warmed) {
+        warmed = true;
+        await capture(component, props, theme);
+    }
+
     const holder = document.createElement('div');
 
-    holder.style.cssText = 'position:absolute;left:0;top:0;width:560px;background:#fff';
+    holder.style.cssText = `position:absolute;left:0;top:0;width:560px;${theme}`;
     document.body.appendChild(holder);
 
     const wrapper = mount(component, {
@@ -200,6 +238,13 @@ async function capture(component, props) {
 
     mounted.push(wrapper);
     await settled();
+
+    // An editor draws the document read until it is built, and it is the
+    // editor that is compared.
+    if (component === RichTextEditor || component === DocumentEditor) {
+        await expect.poll(() => wrapper.element.querySelector('.ProseMirror[contenteditable]')).not.toBeNull();
+        await settled();
+    }
 
     const root = wrapper.element;
 
@@ -223,11 +268,11 @@ async function capture(component, props) {
     return drawn;
 }
 
-async function renderingsOf([Editor, Viewer], props, value) {
+async function renderingsOf([Editor, Viewer], props, value, theme) {
     return {
-        written: await capture(Editor, { ...props, modelValue: value, editable: true }),
-        locked: await capture(Editor, { ...props, modelValue: value, editable: false }),
-        read: await capture(Viewer, { ...props, value }),
+        written: await capture(Editor, { ...props, modelValue: value, editable: true }, theme),
+        locked: await capture(Editor, { ...props, modelValue: value, editable: false }, theme),
+        read: await capture(Viewer, { ...props, value }, theme),
     };
 }
 
@@ -237,28 +282,49 @@ const RENDERINGS = [
     { name: 'page', components: [DocumentEditor, DocumentViewer], set: features },
     // What the core draws on its own, a code block and a task list included.
     { name: 'field with no feature', components: [RichTextEditor, RichTextViewer], set: createFeatures([]) },
+    // Every kind of decoration a plugin lays, over every block.
+    {
+        name: 'field with decorations',
+        components: [RichTextEditor, RichTextViewer],
+        set: features.and([decoratingFeature()]),
+    },
 ];
 
-for (const { name, components, set } of RENDERINGS) {
-    describe(`a ${name}, written, locked and read`, () => {
-        for (const [block, markdown] of Object.entries(CASES)) {
-            it(`draws ${block} at the same pixels`, async () => {
-                const { written, locked, read } = await renderingsOf(components, { features: set }, markdown);
+for (const [themeName, theme] of Object.entries(THEMES)) {
+    for (const { name, components, set } of RENDERINGS) {
+        describe(`a ${name}, written, locked and read, ${themeName}`, () => {
+            for (const [block, markdown] of Object.entries(CASES)) {
+                it(`draws ${block} at the same pixels`, async () => {
+                    const { written, locked, read } = await renderingsOf(
+                        components,
+                        { features: set },
+                        markdown,
+                        theme
+                    );
 
-                // Every element at the same place and the same size, and the
-                // whole of it the same size too.
-                expect(read.layout).toEqual(locked.layout);
-                expect(read.layout).toEqual(written.layout);
-                expect(read.size).toEqual(locked.size);
-                expect(read.size).toEqual(written.size);
+                    // Every element at the same place and the same size, and the
+                    // whole of it the same size too.
+                    expect(read.layout).toEqual(locked.layout);
+                    expect(read.layout).toEqual(written.layout);
+                    expect(read.size).toEqual(locked.size);
+                    expect(read.size).toEqual(written.size);
 
-                // And nothing to set aside between a locked editor and a reader:
-                // the very same pixels.
-                expect(await difference(read.pixels, locked.pixels)).toBeNull();
-            });
-        }
-    });
+                    // And nothing to set aside between a locked editor and a reader:
+                    // the very same pixels.
+                    expect(await difference(read.pixels, locked.pixels)).toBeNull();
+                });
+            }
+        });
+    }
 }
+
+it('draws the dark theme in its own colours, which the dark renderings are compared in', async () => {
+    const light = await capture(RichTextViewer, { features, value: CASES.marks }, THEMES.light);
+    const dark = await capture(RichTextViewer, { features, value: CASES.marks }, THEMES.dark);
+
+    expect(dark.layout).toEqual(light.layout);
+    expect(await difference(dark.pixels, light.pixels)).not.toBeNull();
+});
 
 describe('a page and its cover, written, locked and read', () => {
     const pages = {

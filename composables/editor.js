@@ -1,10 +1,37 @@
 import Placeholder from '@tiptap/extension-placeholder';
-import { useEditor } from '@tiptap/vue-3';
+import { Editor } from '@tiptap/vue-3';
+import { onBeforeUnmount, onMounted, shallowRef, toValue, watch } from 'vue';
 
 import { richTextClipboard } from '../extensions/clipboard.js';
-import { richTextExtensions } from '../extensions/schema.js';
+import { richTextEditorExtensions } from '../extensions/editing.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
+
+/**
+ * What [features] bring to an editor, once it is loaded.
+ *
+ * Null until then: only an editor asks for it, and what asks for it is drawn
+ * without it in the meantime, a menu offering the core's entries alone.
+ *
+ * @param {import('vue').MaybeRefOrGetter<ReturnType<typeof createFeatures>>} features
+ * @returns {import('vue').ShallowRef<any>}
+ */
+export function useRichTextEditing(features) {
+    const editing = shallowRef(null);
+
+    watch(
+        () => toValue(features),
+        (set, _, onCleanup) => {
+            let gone = false;
+
+            onCleanup(() => (gone = true));
+            void set.editing().then((loaded) => !gone && (editing.value = loaded));
+        },
+        { immediate: true }
+    );
+
+    return editing;
+}
 
 /**
  * A tiptap editor built from a set of features, and nothing drawn.
@@ -14,11 +41,15 @@ import { createMarkdownCodec } from '../markdown/codec.js';
  * component for whoever wants the engine without our surfaces, a preview being
  * rendered into a canvas or a screen laying its own chrome around the text.
  *
+ * Built once what only writing needs is loaded, which the features load on
+ * demand: null until then, and the document given is read when it is built,
+ * not when this is called, so what arrived in the meantime is what it opens on.
+ *
  * @param {object} [options]
  * @param {ReturnType<typeof createFeatures>} [options.features]
  * @param {{ encode: (doc: object) => string, decode: (source: string) => object }} [options.codec]
- * @param {string} [options.content] - What the field holds, in the codec's shape
- * @param {boolean} [options.editable]
+ * @param {import('vue').MaybeRefOrGetter<string>} [options.content] - What the field holds, in the codec's shape
+ * @param {import('vue').MaybeRefOrGetter<boolean>} [options.editable]
  * @param {string} [options.emptyPlaceholder] - Said where the document is empty
  * @param {string} [options.hintPlaceholder] - Said on an empty paragraph
  * @param {(markdown: string, editor: any) => void} [options.onUpdate]
@@ -28,29 +59,51 @@ import { createMarkdownCodec } from '../markdown/codec.js';
 export function useRichTextEditor(options = {}) {
     const features = options.features ?? createFeatures([]);
     const codec = options.codec ?? createMarkdownCodec(features);
-    const carriers = features.clipboard();
+    const editor = shallowRef(null);
+    let gone = false;
 
-    return useEditor({
-        editable: options.editable !== false,
-        content: codec.decode(options.content ?? ''),
+    onMounted(async () => {
+        const editing = await features.editing();
 
-        extensions: [
-            ...richTextExtensions(features),
-            Placeholder.configure({
-                placeholder: ({ editor, node }) =>
-                    editor.isEmpty
-                        ? (options.emptyPlaceholder ?? '')
-                        : node.type.name === 'paragraph'
-                          ? (options.hintPlaceholder ?? '')
-                          : '',
-            }),
-            richTextClipboard({ codec, carriers }),
-        ],
+        if (gone) {
+            return;
+        }
 
-        onUpdate: ({ editor }) => options.onUpdate?.(codec.encode(editor.getJSON()), editor),
+        editor.value = new Editor({
+            editable: toValue(options.editable) !== false,
+            content: codec.decode(toValue(options.content) ?? ''),
 
-        onCreate: ({ editor }) => options.onCreate?.(editor),
+            extensions: [
+                ...richTextEditorExtensions(features, editing),
+                Placeholder.configure({
+                    placeholder: ({ editor: current, node }) =>
+                        current.isEmpty
+                            ? (options.emptyPlaceholder ?? '')
+                            : node.type.name === 'paragraph'
+                              ? (options.hintPlaceholder ?? '')
+                              : '',
+                }),
+                richTextClipboard({ codec, carriers: editing.clipboard() }),
+            ],
+
+            onUpdate: ({ editor: current }) => options.onUpdate?.(codec.encode(current.getJSON()), current),
+
+            onCreate: ({ editor: current }) => options.onCreate?.(current),
+        });
     });
+
+    onBeforeUnmount(() => {
+        gone = true;
+
+        // What tiptap's own does: the text is left on the page while the editor
+        // goes, or a leaving transition shows the field emptied.
+        const drawn = editor.value?.view.dom?.parentNode;
+
+        drawn?.parentNode?.replaceChild(drawn.cloneNode(true), drawn);
+        editor.value?.destroy();
+    });
+
+    return editor;
 }
 
 /**

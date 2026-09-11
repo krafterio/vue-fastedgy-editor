@@ -12,6 +12,8 @@ import { plusUnderlineFeature } from '../../features/plus-underline.js';
 import { createFeatures } from '../../features/registry.js';
 import { tableFeature } from '../../features/table.js';
 import { todoListFeature } from '../../features/todo-list.js';
+import { built } from '../built.js';
+import { decoratingFeature } from '../fixtures/decorating.js';
 
 const mounted = [];
 
@@ -64,12 +66,13 @@ const EDITING_CLASSES = ['is-empty', 'is-editor-empty', 'ProseMirror-selectednod
 function drawn(root, { strict = false } = {}) {
     const copy = root.cloneNode(true);
 
-    // ProseMirror's own devices, and the handle a picture is resized by: tools
-    // for writing, laid over the page rather than laid out in it.
+    // ProseMirror's own devices, the handle a picture is resized by and the
+    // picker a code block's language is chosen with: tools for writing, laid
+    // over the page or beside what it holds, never moving it.
     copy.querySelectorAll(
         strict
             ? 'img.ProseMirror-separator, .ProseMirror-gapcursor'
-            : 'img.ProseMirror-separator, .ProseMirror-gapcursor, [data-slot="editor-image-handle"]'
+            : 'img.ProseMirror-separator, .ProseMirror-gapcursor, [data-slot="editor-image-handle"], [data-slot="editor-picker"]'
     ).forEach((tool) => tool.remove());
 
     // A template's comments, which Vue keeps while developing and a browser
@@ -106,16 +109,16 @@ function drawn(root, { strict = false } = {}) {
     return copy.innerHTML;
 }
 
-async function bothOf(markdown, { editable = true, strict = false } = {}) {
+async function bothOf(markdown, { editable = true, strict = false, set = features } = {}) {
     const editor = mount(RichTextEditor, {
-        props: { features, modelValue: markdown, editable },
+        props: { features: set, modelValue: markdown, editable },
         attachTo: document.body,
     });
-    const viewer = mount(RichTextViewer, { props: { features, value: markdown }, attachTo: document.body });
+    const viewer = mount(RichTextViewer, { props: { features: set, value: markdown }, attachTo: document.body });
 
     mounted.push(editor, viewer);
 
-    await nextTick();
+    await built(editor);
     await new Promise((resolve) => setTimeout(resolve, 0));
     await nextTick();
 
@@ -127,26 +130,26 @@ async function bothOf(markdown, { editable = true, strict = false } = {}) {
     };
 }
 
-describe('a document read and the same document written', () => {
-    const cases = {
-        headings: '# un\n\n## deux\n\n### trois',
-        marks: 'du **gras**, de l’_italique_, du `code`, ~~barré~~, __souligné__ et **tout _à la_ fois**',
-        link: 'un [lien](https://example.com) dans le texte',
-        'an empty paragraph': 'avant\n\n&nbsp;\n\naprès',
-        'a hard break': 'une ligne  \nla suivante',
-        'spaces kept': 'deux  espaces',
-        lists: '* un\n* deux\n  * sous deux\n\n1. premier\n2. second',
-        tasks: '- [ ] à faire\n- [x] fait',
-        quote: '> une citation',
-        code: '```javascript\nconst a = 1;\n```',
-        'code without a language': '```\nplain\n```',
-        rule: 'avant\n\n---\n\naprès',
-        table: '| A | B |\n| --- | --- |\n| un | deux |',
-        picture: `![](${PICTURE}?w=320&h=200)`,
-        mention: 'voir [Courses](/notes/12)',
-        indented: 'parent\n\n    enfant',
-    };
+const cases = {
+    headings: '# un\n\n## deux\n\n### trois',
+    marks: 'du **gras**, de l’_italique_, du `code`, ~~barré~~, __souligné__ et **tout _à la_ fois**',
+    link: 'un [lien](https://example.com) dans le texte',
+    'an empty paragraph': 'avant\n\n&nbsp;\n\naprès',
+    'a hard break': 'une ligne  \nla suivante',
+    'spaces kept': 'deux  espaces',
+    lists: '* un\n* deux\n  * sous deux\n\n1. premier\n2. second',
+    tasks: '- [ ] à faire\n- [x] fait',
+    quote: '> une citation',
+    code: '```javascript\nconst a = 1;\n```',
+    'code without a language': '```\nplain\n```',
+    rule: 'avant\n\n---\n\naprès',
+    table: '| A | B |\n| --- | --- |\n| un | deux |',
+    picture: `![](${PICTURE}?w=320&h=200)`,
+    mention: 'voir [Courses](/notes/12)',
+    indented: 'parent\n\n    enfant',
+};
 
+describe('a document read and the same document written', () => {
     for (const [name, markdown] of Object.entries(cases)) {
         it(`draws ${name} element for element`, async () => {
             const { written, read } = await bothOf(markdown);
@@ -175,7 +178,7 @@ describe('a document read and the same document written', () => {
         const viewer = mount(RichTextViewer, { props: { features: bare, value: markdown }, attachTo: document.body });
 
         mounted.push(editor, viewer);
-        await nextTick();
+        await built(editor);
         await new Promise((resolve) => setTimeout(resolve, 0));
         await nextTick();
 
@@ -187,10 +190,75 @@ describe('a document read and the same document written', () => {
         expect(drawn(viewer.get('.ProseMirror').element)).toBe(drawn(written.element));
     });
 
+    it('shows the document read while the editor is built, and the editor in its place once it is', async () => {
+        let release;
+        const held = new Promise((resolve) => (release = resolve));
+        const set = features.and([{ name: 'held', editing: () => held.then(() => ({})) }]);
+        const markdown = '# titre\n\n* une puce';
+        const editor = mount(RichTextEditor, {
+            props: { features: set, modelValue: markdown },
+            attachTo: document.body,
+        });
+        const viewer = mount(RichTextViewer, { props: { features: set, value: markdown }, attachTo: document.body });
+
+        mounted.push(editor, viewer);
+        await nextTick();
+
+        expect(editor.find('[contenteditable]').exists()).toBe(false);
+        expect(drawn(editor.get('.ProseMirror').element)).toBe(drawn(viewer.get('.ProseMirror').element));
+
+        release();
+        await built(editor);
+
+        expect(editor.findAll('.ProseMirror')).toHaveLength(1);
+        expect(drawn(editor.get('.ProseMirror').element)).toBe(drawn(viewer.get('.ProseMirror').element));
+    });
+
+    it('never loads what writing needs to read', async () => {
+        let asked = 0;
+        const set = features.and([{ name: 'counted', editing: () => (asked++, {}) }]);
+        const viewer = mount(RichTextViewer, { props: { features: set, value: 'du texte' }, attachTo: document.body });
+
+        mounted.push(viewer);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(asked).toBe(0);
+    });
+
     it('mounts no editor to read with', async () => {
         const { viewer } = await bothOf('du texte');
 
         expect(viewer.find('.ProseMirror').attributes('contenteditable')).toBeUndefined();
         expect(viewer.findComponent({ name: 'EditorContent' }).exists()).toBe(false);
+    });
+});
+
+describe('what a plugin lays over a document, read and written', () => {
+    // Every kind of decoration, over every block: the viewer draws them as the
+    // editor's view does, where no view is there to draw them.
+    const decorated = features.and([decoratingFeature()]);
+
+    for (const [name, markdown] of Object.entries(cases)) {
+        it(`draws them over ${name} element for element`, async () => {
+            const { written, read } = await bothOf(markdown, { set: decorated });
+
+            expect(read).toBe(written);
+        });
+
+        it(`draws them over ${name} as an editor locked for reading does`, async () => {
+            const { written, read } = await bothOf(markdown, { editable: false, strict: true, set: decorated });
+
+            expect(read).toBe(written);
+        });
+    }
+
+    it('draws them at all', async () => {
+        const { read } = await bothOf('un paragraphe', { set: decorated });
+
+        expect(read).toContain('class="between');
+        expect(read).toContain('data-marked="yes"');
+        expect(read).toContain('<mark class="over">');
+        expect(read).toContain('★');
+        expect(read).toContain('☆');
     });
 });

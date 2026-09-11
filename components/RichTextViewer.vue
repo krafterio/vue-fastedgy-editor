@@ -3,7 +3,7 @@ import { computed, useTemplateRef } from 'vue';
 
 import { createFeatures } from '../features/registry.js';
 import { richTextLabels } from '../labels.js';
-import { createRichTextReader } from '../render/rich-text.js';
+import RichTextBlocks from './internal/RichTextBlocks.vue';
 
 const props = defineProps({
     /** The document to draw, markdown or a decoded document. */
@@ -26,16 +26,7 @@ const props = defineProps({
 });
 
 const said = computed(() => richTextLabels(props.labels));
-const text = useTemplateRef('text');
-
-const reader = computed(() => createRichTextReader(props.features));
-const codec = computed(() => props.codec ?? reader.value.codec);
-
-const document = computed(() =>
-    typeof props.value === 'string' ? codec.value.decode(props.value) : (props.value ?? { type: 'doc', content: [] })
-);
-
-const blocks = computed(() => reader.value.draw(document.value));
+const blocks = useTemplateRef('blocks');
 
 const size = (value) => (typeof value === 'number' ? `${value}px` : value);
 
@@ -52,18 +43,21 @@ const style = computed(() => ({
     <div class="fe-editor" data-slot="editor-viewer" :data-fill="fill || undefined">
         <!--
           No engine, and that is the whole point: nothing here edits, so nothing
-          is mounted to edit with. What draws the blocks is what draws them in
-          the editor, and the elements around them are the editor's too, so the
-          one stylesheet lays both out alike.
+          is mounted to edit with, and nothing that only writing needs is
+          loaded. What draws the blocks is what draws them in the editor, and
+          the elements around them are the editor's too, so the one stylesheet
+          lays both out alike.
         -->
         <div data-slot="editor-body">
             <div data-slot="editor-content" :style="style">
-                <div ref="text" class="tiptap ProseMirror">
-                    <component :is="() => blocks" />
-                </div>
+                <RichTextBlocks ref="blocks" :value="value" :features="features" :codec="codec" />
             </div>
         </div>
 
-        <component :is="() => surface(() => text, said)" v-for="(surface, at) in features.readingSurfaces" :key="at" />
+        <component
+            :is="() => surface(() => blocks?.$el ?? null, said)"
+            v-for="(surface, at) in features.readingSurfaces"
+            :key="at"
+        />
     </div>
 </template>

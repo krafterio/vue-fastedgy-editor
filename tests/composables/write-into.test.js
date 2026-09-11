@@ -1,6 +1,7 @@
 import { Editor } from '@tiptap/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { editingExtensions } from '../../extensions/editing.js';
 import { coreExtensions } from '../../extensions/schema.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
 import { writeInto } from '../../composables/editor.js';
@@ -17,7 +18,7 @@ afterEach(() => {
 function editorWith(markdown) {
     const editor = new Editor({
         element: document.createElement('div'),
-        extensions: coreExtensions(),
+        extensions: [...coreExtensions(), ...editingExtensions()],
         content: codec.decode(markdown),
     });
 

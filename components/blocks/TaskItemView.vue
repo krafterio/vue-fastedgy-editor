@@ -1,10 +1,12 @@
 <script setup>
 import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
 
+import { useEditable } from '../../composables/editable.js';
 import { useRichTextIcons } from '../../composables/icons.js';
 import { BlockContent } from '../internal/BlockContent.js';
 
 const props = defineProps(nodeViewProps);
+const editable = useEditable(props.editor);
 
 const { icon } = useRichTextIcons();
 
@@ -24,7 +26,7 @@ const toggle = () => props.updateAttributes({ checked: !props.node.attrs.checked
             data-slot="editor-task-check"
             contenteditable="false"
             :aria-checked="node.attrs.checked === true"
-            :disabled="!editor.isEditable"
+            :disabled="!editable"
             @click="toggle"
         >
             <component :is="icon('check')" v-if="node.attrs.checked && icon('check')" />

@@ -6,6 +6,7 @@ import DocumentEditor from '../../components/DocumentEditor.vue';
 import DocumentViewer from '../../components/DocumentViewer.vue';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
+import { built } from '../built.js';
 
 const features = createFeatures([]);
 const codec = createMarkdownCodec(features);
@@ -28,7 +29,7 @@ async function documentOf({ slots, ...props } = {}) {
 
     mounted.push(page);
 
-    await nextTick();
+    await built(page);
     await new Promise((resolve) => setTimeout(resolve, 0));
     await nextTick();
 

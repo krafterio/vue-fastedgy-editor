@@ -1,4 +1,14 @@
 /**
+ * What [features] bring to an editor, once it is loaded.
+ *
+ * Null until then: only an editor asks for it, and what asks for it is drawn
+ * without it in the meantime, a menu offering the core's entries alone.
+ *
+ * @param {import('vue').MaybeRefOrGetter<ReturnType<typeof createFeatures>>} features
+ * @returns {import('vue').ShallowRef<any>}
+ */
+export function useRichTextEditing(features: import("vue").MaybeRefOrGetter<ReturnType<typeof createFeatures>>): import("vue").ShallowRef<any>;
+/**
  * A tiptap editor built from a set of features, and nothing drawn.
  *
  * What `RichTextEditor` mounts, on its own: the schema, what the features add,
@@ -6,11 +16,15 @@
  * component for whoever wants the engine without our surfaces, a preview being
  * rendered into a canvas or a screen laying its own chrome around the text.
  *
+ * Built once what only writing needs is loaded, which the features load on
+ * demand: null until then, and the document given is read when it is built,
+ * not when this is called, so what arrived in the meantime is what it opens on.
+ *
  * @param {object} [options]
  * @param {ReturnType<typeof createFeatures>} [options.features]
  * @param {{ encode: (doc: object) => string, decode: (source: string) => object }} [options.codec]
- * @param {string} [options.content] - What the field holds, in the codec's shape
- * @param {boolean} [options.editable]
+ * @param {import('vue').MaybeRefOrGetter<string>} [options.content] - What the field holds, in the codec's shape
+ * @param {import('vue').MaybeRefOrGetter<boolean>} [options.editable]
  * @param {string} [options.emptyPlaceholder] - Said where the document is empty
  * @param {string} [options.hintPlaceholder] - Said on an empty paragraph
  * @param {(markdown: string, editor: any) => void} [options.onUpdate]
@@ -27,26 +41,20 @@ export function useRichTextEditor(options?: {
         readonly views: {
             [k: string]: any;
         };
-        readonly menuItems: any[];
-        readonly replacedMenuItems: Set<string>;
-        clipboard(): any;
-        takes(kinds: any): boolean;
-        readonly actions: any[];
-        readonly surfaces: ((editor: any, labels: object) => any)[];
         readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
         readonly encoders: any;
         readonly decoders: {};
         readonly inlineRules: ((md: any) => void)[];
         before(doc: any): any;
         after(blocks: any): any;
-        holdsEnter(state: any): boolean;
+        editing(): Promise<RichTextEditingSet>;
     } | undefined;
     codec?: {
         encode: (doc: object) => string;
         decode: (source: string) => object;
     } | undefined;
-    content?: string | undefined;
-    editable?: boolean | undefined;
+    content?: import("vue").MaybeRefOrGetter<string> | undefined;
+    editable?: import("vue").MaybeRefOrGetter<boolean> | undefined;
     emptyPlaceholder?: string | undefined;
     hintPlaceholder?: string | undefined;
     onUpdate?: ((markdown: string, editor: any) => void) | undefined;
@@ -88,4 +96,5 @@ export function spillsInto(editor: () => any): (event: KeyboardEvent) => void;
  * @returns {boolean} - Whether anything was written
  */
 export function writeInto(editor: any, content: object): boolean;
+import { createFeatures } from '../features/registry.js';
 //# sourceMappingURL=editor.d.ts.map

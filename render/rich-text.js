@@ -6,7 +6,8 @@ import {
     resolveExtensions,
 } from '@tiptap/core';
 import { EditorState } from '@tiptap/pm/state';
-import { defineComponent, h, provide, ref } from 'vue';
+import { DecorationSet } from '@tiptap/pm/view';
+import { cloneVNode, defineComponent, h, provide, ref } from 'vue';
 
 import { HELD_CONTENT } from '../components/internal/BlockContent.js';
 import { richTextExtensions } from '../extensions/schema.js';
@@ -71,7 +72,6 @@ function readerOf(features) {
         views: features.views,
         nodeViews: nodeViewsOf(extensions, features.views, schema),
         decorating: decoratingOf(extensions, schema),
-        decorated: [],
         extensions,
     };
 
@@ -86,7 +86,7 @@ function readerOf(features) {
         draw: (doc) => {
             const read = documentOf(schema, doc);
 
-            return childrenOf(read, { ...context, decorated: decorationsOf(read, context.decorating) }, 0);
+            return childrenOf(read, context, decorationsOf(read, context.decorating), 0);
         },
     };
 }
@@ -132,13 +132,13 @@ function nodeViewsOf(extensions, views, schema) {
         const make = addNodeView?.();
 
         if (make) {
-            built[extension.name] = (node) =>
+            built[extension.name] = (node, decorations, innerDecorations) =>
                 make({
                     node,
                     view: READ_ONLY,
                     getPos: () => undefined,
-                    decorations: [],
-                    innerDecorations: [],
+                    decorations,
+                    innerDecorations,
                     editor: READ_ONLY,
                     extension,
                     HTMLAttributes: getRenderedAttributes(node, attributes),
@@ -169,76 +169,307 @@ function decoratingOf(extensions, schema) {
 
 /**
  * What those plugins lay over [doc], asked of them as the editor's view asks:
- * of a state holding the document, which is data, and no view at all.
+ * of a state holding the document, which is data, and no view at all. Laid by
+ * several plugins, they are read as one set, as the view reads them.
  */
 function decorationsOf(doc, decorating) {
     if (decorating.length === 0) {
-        return [];
+        return DecorationSet.empty;
     }
 
     const state = EditorState.create({ doc, plugins: decorating });
+    const sets = decorating.map((plugin) => plugin.props.decorations.call(plugin, state)).filter((set) => set?.find);
 
-    return decorating.map((plugin) => plugin.props.decorations.call(plugin, state)).filter((set) => set?.find);
+    return sets.length === 1
+        ? sets[0]
+        : DecorationSet.create(
+              doc,
+              sets.flatMap((set) => set.find())
+          );
 }
 
-/** The inline decorations over the content of a textblock starting at [start]. */
-function laidOver(node, start, context) {
-    return context.decorated
-        .flatMap((set) => set.find(start, start + node.content.size))
-        .filter((decoration) => decoration.inline)
-        .map((decoration) => ({
-            from: decoration.from - start,
-            to: decoration.to - start,
-            attrs: decoration.type.attrs,
-        }))
-        .sort((a, b) => a.from - b.from);
+/**
+ * The children of [parent] and the widgets between them, in the order the view
+ * draws them, each child handed the decorations drawn around it and the source
+ * of those inside it: ProseMirror's own walk (`iterDeco`), a text cut wherever
+ * a decoration starts or ends.
+ *
+ * @param {any} parent
+ * @param {any} source - A decoration source, local to [parent]
+ * @param {(widget: any, index: number, insideNode: boolean) => void} onWidget
+ * @param {(child: any, outer: any[], inner: any, offset: number) => void} onNode
+ */
+function iterDeco(parent, source, onWidget, onNode) {
+    const locals = source.locals(parent);
+    let offset = 0;
+
+    if (locals.length === 0) {
+        parent.forEach((child, at) => onNode(child, locals, source.forChild(at, child), at));
+
+        return;
+    }
+
+    let decoIndex = 0;
+    let restNode = null;
+    const active = [];
+
+    for (let parentIndex = 0; ;) {
+        const widgets = [];
+
+        while (decoIndex < locals.length && locals[decoIndex].to === offset) {
+            const next = locals[decoIndex++];
+
+            if (next.widget) {
+                widgets.push(next);
+            }
+        }
+
+        widgets.sort((a, b) => a.type.side - b.type.side);
+        widgets.forEach((widget) => onWidget(widget, parentIndex, Boolean(restNode)));
+
+        let child;
+
+        if (restNode) {
+            child = restNode;
+            restNode = null;
+        } else if (parentIndex < parent.childCount) {
+            child = parent.child(parentIndex++);
+        } else {
+            break;
+        }
+
+        for (let at = 0; at < active.length; at++) {
+            if (active[at].to <= offset) {
+                active.splice(at--, 1);
+            }
+        }
+
+        while (decoIndex < locals.length && locals[decoIndex].from <= offset && locals[decoIndex].to > offset) {
+            active.push(locals[decoIndex++]);
+        }
+
+        let end = offset + child.nodeSize;
+
+        if (child.isText) {
+            let cutAt = end;
+
+            if (decoIndex < locals.length && locals[decoIndex].from < cutAt) {
+                cutAt = locals[decoIndex].from;
+            }
+
+            for (const decoration of active) {
+                if (decoration.to < cutAt) {
+                    cutAt = decoration.to;
+                }
+            }
+
+            if (cutAt < end) {
+                restNode = child.cut(cutAt - offset);
+                child = child.cut(0, cutAt - offset);
+                end = cutAt;
+            }
+        } else {
+            while (decoIndex < locals.length && locals[decoIndex].to < end) {
+                decoIndex++;
+            }
+        }
+
+        const outer =
+            child.isInline && !child.isLeaf ? active.filter((decoration) => !decoration.inline) : active.slice();
+
+        onNode(child, outer, source.forChild(offset, child), offset);
+        offset = end;
+    }
 }
 
-function childrenOf(node, context, start) {
+/**
+ * The decorations drawn around a node, as the view lays them (`computeOuterDeco`):
+ * the first level on the node's own element, and one more around it for every
+ * decoration naming an element of its own. A text, which has no element to
+ * carry anything, is wrapped in one.
+ */
+function outerLevels(outer, node, needsWrap) {
+    const levels = [{}];
+    let top = levels[0];
+
+    for (const decoration of outer) {
+        const attrs = decoration.type.attrs;
+
+        if (!attrs) {
+            continue;
+        }
+
+        if (attrs.nodeName) {
+            levels.push((top = { nodeName: attrs.nodeName }));
+        }
+
+        for (const [name, value] of Object.entries(attrs)) {
+            if (value === null || value === undefined) {
+                continue;
+            }
+
+            if (needsWrap && levels.length === 1) {
+                levels.push((top = { nodeName: node.isInline ? 'span' : 'div' }));
+            }
+
+            if (name === 'class') {
+                top.class = (top.class ? `${top.class} ` : '') + value;
+            } else if (name === 'style') {
+                top.style = (top.style ? `${top.style};` : '') + value;
+            } else if (name !== 'nodeName') {
+                top[name] = value;
+            }
+        }
+    }
+
+    return levels;
+}
+
+/**
+ * What a level sets, in the order the view sets it (`patchAttributes`): its
+ * attributes, then its classes, then its style.
+ */
+function attributesOf(level) {
+    const { class: classes, style, ...rest } = level;
+    const named = Object.entries(rest).filter(([name]) => name !== 'nodeName');
+
+    return { ...Object.fromEntries(named), ...(classes ? { class: classes } : {}), ...(style ? { style } : {}) };
+}
+
+/** [drawn] with the decorations around it: its own element given the first level, then wrapped. */
+function wrapped(drawn, levels, own = (vnode, attributes) => cloneVNode(vnode, attributes, true)) {
+    const [first, ...around] = levels;
+    const attributes = attributesOf(first);
+    let vnode = Object.keys(attributes).length > 0 ? own(drawn, attributes) : drawn;
+
+    for (const level of around) {
+        vnode = h(level.nodeName, attributesOf(level), [vnode]);
+    }
+
+    return vnode;
+}
+
+/** A widget, as the view draws one: its element, never written in, marked as a widget. */
+function widgetOf(widget, position) {
+    let dom = widget.type.toDOM;
+
+    if (typeof dom === 'function') {
+        dom = dom(READ_ONLY, () => position);
+    }
+
+    if (!widget.type.spec.raw) {
+        if (dom.nodeType !== 1) {
+            const wrap = document.createElement('span');
+
+            wrap.appendChild(dom);
+            dom = wrap;
+        }
+
+        if (!dom.hasAttribute('contenteditable')) {
+            dom.contentEditable = 'false';
+        }
+
+        dom.classList.add('ProseMirror-widget');
+    }
+
+    return fromDom(dom, null, () => []);
+}
+
+function childrenOf(node, context, source, start) {
     const drawn = [];
 
-    node.forEach((child, offset) => drawn.push(nodeOf(child, context, start + offset)));
+    iterDeco(
+        node,
+        source,
+        (widget) => drawn.push(widgetOf(widget, start + widget.from)),
+        (child, outer, inner, offset) => drawn.push(nodeOf(child, context, outer, inner, start + offset))
+    );
 
     return drawn;
 }
 
-function nodeOf(node, context, position) {
+function nodeOf(node, context, outer, inner, position) {
     const name = node.type.name;
+    const levels = outerLevels(outer, node, false);
 
     if (context.views[name]) {
-        return h(ReadNodeView, {
-            view: context.views[name],
-            node,
-            position,
-            extension: context.extensions.find((extension) => extension.name === name) ?? null,
-            context,
-        });
+        // The classes go where the editor puts them, through the wrapper that
+        // reads them; everything else lands on the element the view draws.
+        const { class: classes, ...rest } = levels[0];
+
+        return wrapped(
+            h(ReadNodeView, {
+                view: context.views[name],
+                node,
+                position,
+                extension: context.extensions.find((extension) => extension.name === name) ?? null,
+                context,
+                decorations: outer,
+                inner,
+                classes: classes ?? '',
+            }),
+            [rest, ...levels.slice(1)],
+            (vnode, attributes) => cloneVNode(vnode, { attributes })
+        );
     }
 
     if (context.nodeViews[name]) {
-        const built = context.nodeViews[name](node);
+        const built = context.nodeViews[name](node, outer, inner);
 
-        return fromDom(built.dom, built.contentDOM ?? null, () => contentOf(node, context, position));
+        return wrapped(
+            fromDom(built.dom, built.contentDOM ?? null, () => contentOf(node, context, inner, position)),
+            levels
+        );
     }
 
-    return fromSpec(node.type.spec.toDOM(node), () => contentOf(node, context, position));
+    return wrapped(
+        fromSpec(node.type.spec.toDOM(node), () => contentOf(node, context, inner, position)),
+        levels
+    );
 }
 
 /** What a node at [position] holds: blocks, or the line of a textblock. */
-function contentOf(node, context, position) {
+function contentOf(node, context, source, position) {
     return node.isTextblock
-        ? withTrailingBreak(inlineOf(node, context, position + 1), node)
-        : childrenOf(node, context, position + 1);
+        ? inlineOf(node, context, source, position + 1)
+        : childrenOf(node, context, source, position + 1);
 }
 
 /**
  * The inline content of a textblock, each mark drawn once around every node it
  * spans, as ProseMirror nests them: `**a *b* c**` is one `strong` holding an
- * `em`, not three `strong`. Decorations sit inside the marks, around the text
- * they cover, as ProseMirror lays them.
+ * `em`, not three `strong`. What decorations draw sits inside the marks, around
+ * what it covers, and a widget takes the marks the view gives it: its own, the
+ * next node's when it stands before it, or those already open.
  */
-function inlineOf(node, context, start) {
-    const decorations = laidOver(node, start, context);
+function inlineOf(node, context, source, start) {
+    const items = [];
+
+    iterDeco(
+        node,
+        source,
+        (widget, index, insideNode) =>
+            items.push({
+                marks:
+                    widget.spec.marks ??
+                    (widget.type.side >= 0 && !insideNode
+                        ? index === node.childCount
+                            ? []
+                            : node.child(index).marks
+                        : null),
+                drawn: widgetOf(widget, start + widget.from),
+                text: null,
+            }),
+        (child, outer, inner, offset) =>
+            items.push({
+                marks: child.marks,
+                drawn: child.isText
+                    ? wrapped(child.text, outerLevels(outer, child, true))
+                    : nodeOf(child, context, outer, inner, start + offset),
+                text: child.isText ? child.text : null,
+            })
+    );
+
     const root = { children: [] };
     const open = [];
     const top = () => open.at(-1) ?? root;
@@ -249,77 +480,41 @@ function inlineOf(node, context, start) {
         top().children.push(fromSpec(mark.type.spec.toDOM(mark, true), () => children));
     };
 
-    node.forEach((child, offset) => {
-        let kept = 0;
+    for (const { marks, drawn } of items) {
+        if (marks !== null) {
+            let kept = 0;
 
-        while (kept < open.length && kept < child.marks.length && open[kept].mark.eq(child.marks[kept])) {
-            kept++;
+            while (kept < open.length && kept < marks.length && open[kept].mark.eq(marks[kept])) {
+                kept++;
+            }
+
+            while (open.length > kept) {
+                close();
+            }
+
+            for (const mark of marks.slice(kept)) {
+                open.push({ mark, children: [] });
+            }
         }
 
-        while (open.length > kept) {
-            close();
-        }
-
-        for (const mark of child.marks.slice(kept)) {
-            open.push({ mark, children: [] });
-        }
-
-        top().children.push(
-            ...(child.isText ? decorated(child.text, offset, decorations) : [nodeOf(child, context, start + offset)])
-        );
-    });
+        top().children.push(drawn);
+    }
 
     while (open.length > 0) {
         close();
     }
 
-    return root.children;
-}
-
-/**
- * A run of text cut where decorations start and end, each covered piece in the
- * element its decoration names, `span` unless it says otherwise.
- */
-function decorated(text, start, decorations) {
-    const drawn = [];
-    let at = start;
-    const end = start + text.length;
-
-    for (const decoration of decorations) {
-        const from = Math.max(decoration.from, at);
-        const to = Math.min(decoration.to, end);
-
-        if (to <= from) {
-            continue;
-        }
-
-        if (from > at) {
-            drawn.push(text.slice(at - start, from - start));
-        }
-
-        const { nodeName = 'span', ...attrs } = decoration.attrs ?? {};
-
-        drawn.push(h(nodeName, attrs, text.slice(from - start, to - start)));
-        at = to;
-    }
-
-    if (at < end) {
-        drawn.push(text.slice(at - start));
-    }
-
-    return drawn;
+    return withTrailingBreak(root.children, items.at(-1));
 }
 
 /**
  * The break ProseMirror puts at the end of a line that would otherwise draw no
- * height: an empty one, one ending on something that is not text, one ending
- * on a line feed. Without it an empty paragraph read is an empty paragraph
- * collapsed, and everything below it moves up.
+ * height: an empty one, one ending on something that is not text, a widget
+ * among them, one ending on a line feed. Without it an empty paragraph read is
+ * an empty paragraph collapsed, and everything below it moves up.
  */
-function withTrailingBreak(drawn, node) {
-    const last = node.lastChild;
-
-    if (!last || !last.isText || last.text.endsWith('\n')) {
+function withTrailingBreak(drawn, last) {
+    if (!last || last.text === null || last.text.endsWith('\n')) {
         drawn.push(h('br', { class: 'ProseMirror-trailingBreak' }));
     }
 
@@ -339,20 +534,26 @@ const ReadNodeView = defineComponent({
         position: { type: Number, required: true },
         extension: { type: Object, default: null },
         context: { type: Object, required: true },
+        decorations: { type: Array, default: () => [] },
+        inner: { type: Object, required: true },
+        classes: { type: String, default: '' },
+        attributes: { type: Object, default: () => ({}) },
     },
 
     setup(props) {
-        // What `NodeViewWrapper` reads: nothing to drag, and no decoration.
+        // What `NodeViewWrapper` reads: nothing to drag, and the classes of
+        // the decorations around the node, as tiptap hands them over.
         provide('onDragStart', () => {});
-        provide('decorationClasses', ref(''));
-        provide(HELD_CONTENT, () => contentOf(props.node, props.context, props.position));
+        provide('decorationClasses', ref(props.classes));
+        provide(HELD_CONTENT, () => contentOf(props.node, props.context, props.inner, props.position));
 
         return () =>
             h(props.view, {
+                ...props.attributes,
                 editor: READ_ONLY,
                 node: props.node,
-                decorations: [],
-                innerDecorations: [],
+                decorations: props.decorations,
+                innerDecorations: props.inner,
                 view: READ_ONLY,
                 selected: false,
                 extension: { name: props.extension?.name, options: props.extension?.options ?? {}, storage: {} },

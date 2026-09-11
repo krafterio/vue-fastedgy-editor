@@ -1,5 +1,7 @@
 import Image from '@tiptap/extension-image';
 
+import { extendedOnce } from './extend.js';
+
 /**
  * A picture that remembers how big it was drawn.
  *
@@ -7,7 +9,7 @@ import Image from '@tiptap/extension-image';
  * `features/image.js`). The node has to carry it for the round trip to be able
  * to write it back, and `extension-image` alone carries `src` and `alt`.
  */
-export const SizedImage = Image.extend({
+export const SizedImage = extendedOnce(Image, {
     addOptions() {
         return {
             ...this.parent?.(),

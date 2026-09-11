@@ -16,19 +16,13 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly views: {
                 [k: string]: any;
             };
-            readonly menuItems: any[];
-            readonly replacedMenuItems: Set<string>;
-            clipboard(): any;
-            takes(kinds: any): boolean;
-            readonly actions: any[];
-            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
             before(doc: any): any;
             after(blocks: any): any;
-            holdsEnter(state: any): boolean;
+            editing(): Promise<RichTextEditingSet>;
         };
     };
     codec: {
@@ -107,19 +101,13 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly views: {
                 [k: string]: any;
             };
-            readonly menuItems: any[];
-            readonly replacedMenuItems: Set<string>;
-            clipboard(): any;
-            takes(kinds: any): boolean;
-            readonly actions: any[];
-            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
             before(doc: any): any;
             after(blocks: any): any;
-            holdsEnter(state: any): boolean;
+            editing(): Promise<RichTextEditingSet>;
         };
     };
     codec: {
@@ -191,6 +179,7 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     editable: boolean;
     pickFile: Function;
     labels: Record<string, any>;
+    cover: string;
     features: Record<string, any>;
     codec: Record<string, any>;
     minHeight: string | number;
@@ -199,7 +188,6 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
     hintPlaceholder: string;
     slashMenu: boolean;
     formatBubble: boolean;
-    cover: string;
     storeCover: Function;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 type __VLS_Slots = {

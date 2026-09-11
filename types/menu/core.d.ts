@@ -32,16 +32,18 @@ export function coreActions(): {
  * The entries a set offers, its own first and the features' after, minus what a
  * feature said it stands in for.
  *
- * @param {ReturnType<import('../features/registry.js').createFeatures>} features
+ * @param {import('../features/registry.js').RichTextEditingSet|null} editing
+ *   What the features bring to an editor, the core's alone until it is loaded
  * @returns {object[]}
  */
-export function menuItemsOf(features: ReturnType<typeof import("../index.js").createFeatures>): object[];
+export function menuItemsOf(editing: import("../features/registry.js").RichTextEditingSet | null): object[];
 /**
  * The actions a set offers, sorted by group and then by the order they were
  * declared in.
  *
- * @param {ReturnType<import('../features/registry.js').createFeatures>} features
+ * @param {import('../features/registry.js').RichTextEditingSet|null} editing
+ *   What the features bring to an editor, the core's alone until it is loaded
  * @returns {object[]}
  */
-export function actionsOf(features: ReturnType<typeof import("../index.js").createFeatures>): object[];
+export function actionsOf(editing: import("../features/registry.js").RichTextEditingSet | null): object[];
 //# sourceMappingURL=core.d.ts.map

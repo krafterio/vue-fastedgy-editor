@@ -4,6 +4,7 @@
     "description": "Rich text and document editor for FastEdgy applications, on Tiptap, storing documents as markdown",
     "type": "module",
     "main": "./index.js",
+    "sideEffects": ["./styles/*.css", "./labels.js"],
     "types": "./types/index.d.ts",
     "license": "MIT",
     "exports": {

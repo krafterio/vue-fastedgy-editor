@@ -3,11 +3,11 @@ import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { richTextExtensions } from '../../extensions/schema.js';
 import { linkFeature } from '../../features/link.js';
 import { mentionFeature, pathAddressing } from '../../features/mention.js';
 import { createFeatures } from '../../features/registry.js';
 import { tableFeature } from '../../features/table.js';
+import { editorExtensionsOf } from '../built.js';
 
 const editors = [];
 
@@ -15,10 +15,10 @@ const editors = [];
 const inBody = (selector) => document.querySelector(selector);
 const allInBody = (selector) => [...document.querySelectorAll(selector)];
 
-function editorWith(features, content) {
+async function editorWith(features, content) {
     const editor = new Editor({
         element: document.createElement('div'),
-        extensions: richTextExtensions(features),
+        extensions: await editorExtensionsOf(features),
         content,
     });
 
@@ -28,12 +28,13 @@ function editorWith(features, content) {
 }
 
 /** Mounts what a feature floats above its editor, as RichTextEditor will. */
-function mountSurfaces(features, editor) {
+async function mountSurfaces(features, editor) {
+    const editing = await features.editing();
     const mounted = mount(
         defineComponent({
             setup: () => () =>
                 h('div', [
-                    ...features.surfaces.map((surface) => surface(editor)),
+                    ...editing.surfaces.map((surface) => surface(editor)),
                     ...features.readingSurfaces.map((surface) => surface(() => editor.view.dom, {})),
                 ]),
         }),
@@ -65,8 +66,8 @@ describe('LinkPopover', () => {
     const features = createFeatures([linkFeature({ labels: { address: 'Address' } })]);
 
     it('opens on the link the caret sits in, and on nothing else', async () => {
-        const editor = editorWith(features, '<p>see <a href="https://melimelo.app">this</a></p>');
-        mountSurfaces(features, editor);
+        const editor = await editorWith(features, '<p>see <a href="https://melimelo.app">this</a></p>');
+        await mountSurfaces(features, editor);
 
         expect(inBody('[data-slot="editor-link-popover"]') !== null).toBe(false);
 
@@ -83,8 +84,8 @@ describe('TableHandles', () => {
     const table = '<table><tbody><tr><th>a</th><th>b</th></tr><tr><td>c</td><td>d</td></tr></tbody></table>';
 
     it('hangs one handle per column and per row on the table under the pointer', async () => {
-        const editor = editorWith(features, table);
-        const mounted = mountSurfaces(features, editor);
+        const editor = await editorWith(features, table);
+        const mounted = await mountSurfaces(features, editor);
 
         // The holder is always there, being what every handle is measured
         // against; what comes and goes is the handles.
@@ -127,12 +128,12 @@ describe('MentionSuggestions', () => {
             mentionFeature({ sources: [missing], addressing: pathAddressing({ user: '/household/members/{id}' }) }),
         ]);
 
-        const editor = editorWith(
+        const editor = await editorWith(
             set,
             '<p><span data-type="mention" data-model="user" data-id="7" data-label="François">François</span></p>'
         );
 
-        mountSurfaces(set, editor);
+        await mountSurfaces(set, editor);
         await nextTick();
 
         const chip = editor.view.dom.querySelector('[data-mention]');
@@ -151,12 +152,12 @@ describe('MentionSuggestions', () => {
             mentionFeature({ sources: [known], addressing: pathAddressing({ user: '/household/members/{id}' }) }),
         ]);
 
-        const editor = editorWith(
+        const editor = await editorWith(
             set,
             '<p><span data-type="mention" data-model="user" data-id="7" data-label="François">François</span></p>'
         );
 
-        mountSurfaces(set, editor);
+        await mountSurfaces(set, editor);
         await nextTick();
 
         const chip = editor.view.dom.querySelector('[data-mention]');
@@ -170,10 +171,11 @@ describe('MentionSuggestions', () => {
         expect(inBody('[data-slot="editor-mention-preview-title"]')).toBeNull();
 
         chip.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        await nextTick();
-        await nextTick();
 
-        expect(inBody('[data-slot="editor-mention-preview-title"]')?.textContent).toBe('François');
+        // The card is loaded the first time one is asked for.
+        await vi.waitFor(() =>
+            expect(inBody('[data-slot="editor-mention-preview-title"]')?.textContent).toBe('François')
+        );
     });
 
     it('draws the mark a source lends a candidate', async () => {
@@ -188,9 +190,9 @@ describe('MentionSuggestions', () => {
             mentionFeature({ sources: [faced], addressing: pathAddressing({ user: '/household/members/{id}' }) }),
         ]);
 
-        const editor = editorWith(set, '<p></p>');
+        const editor = await editorWith(set, '<p></p>');
 
-        mountSurfaces(set, editor);
+        await mountSurfaces(set, editor);
 
         editor.commands.insertContent('@fra');
         await vi.advanceTimersByTimeAsync(300);
@@ -206,13 +208,15 @@ describe('MentionSuggestions', () => {
     it('offers what the source answers, and writes the mention that was picked', async () => {
         vi.useFakeTimers();
 
-        const editor = editorWith(features, '<p></p>');
-        mountSurfaces(features, editor);
+        const editor = await editorWith(features, '<p></p>');
+        const editing = await features.editing();
+
+        await mountSurfaces(features, editor);
 
         editor.commands.insertContent('@fra');
         await nextTick();
 
-        expect(features.holdsEnter({ editor })).toBe(true);
+        expect(editing.holdsEnter({ editor })).toBe(true);
 
         await vi.advanceTimersByTimeAsync(300);
         await nextTick();
@@ -226,7 +230,7 @@ describe('MentionSuggestions', () => {
         const written = editor.getJSON().content[0].content[0];
 
         expect(written).toEqual({ type: 'mention', attrs: { model: 'user', id: 7, label: 'François' } });
-        expect(features.holdsEnter({ editor })).toBe(false);
+        expect(editing.holdsEnter({ editor })).toBe(false);
 
         vi.useRealTimers();
     });

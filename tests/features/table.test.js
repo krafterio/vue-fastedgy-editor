@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
-import { richTextExtensions } from '../../extensions/schema.js';
+import { editorExtensionsOf } from '../built.js';
 
 import { createFeatures } from '../../features/registry.js';
 import { encodeTable, tableFeature } from '../../features/table.js';
@@ -71,10 +71,10 @@ describe('table', () => {
 });
 
 describe('duplicating', () => {
-    const editorOf = (html) =>
+    const editorOf = async (html) =>
         new Editor({
             element: document.createElement('div'),
-            extensions: richTextExtensions(createFeatures([tableFeature()])),
+            extensions: await editorExtensionsOf(createFeatures([tableFeature()])),
             content: html,
         });
 
@@ -96,8 +96,8 @@ describe('duplicating', () => {
             .getJSON()
             .content[0].content.map((row) => row.content.map((cell) => cell.content[0].content?.[0]?.text ?? ''));
 
-    it('copies a column into the one it inserts', () => {
-        const editor = editorOf(
+    it('copies a column into the one it inserts', async () => {
+        const editor = await editorOf(
             '<table><tbody><tr><th>a</th><th>b</th></tr><tr><td>c</td><td>d</td></tr></tbody></table>'
         );
 
@@ -112,8 +112,8 @@ describe('duplicating', () => {
         editor.destroy();
     });
 
-    it('copies a row into the one it inserts', () => {
-        const editor = editorOf(
+    it('copies a row into the one it inserts', async () => {
+        const editor = await editorOf(
             '<table><tbody><tr><th>a</th><th>b</th></tr><tr><td>c</td><td>d</td></tr></tbody></table>'
         );
 

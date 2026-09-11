@@ -3,6 +3,7 @@ import hljs from 'highlight.js/lib/core';
 import { all, createLowlight } from 'lowlight';
 
 import CodeBlockView from '../components/blocks/CodeBlockView.vue';
+import { extendedOnce } from '../extensions/extend.js';
 import { withoutAuthoring } from '../extensions/schema.js';
 
 /**
@@ -72,7 +73,7 @@ export function codeBlockFeature(options = {}) {
         registerAlias: (...asked) => registry.registerAlias(...asked),
     };
 
-    const extension = CodeBlockLowlight.extend({
+    const base = extendedOnce(CodeBlockLowlight, {
         addOptions() {
             return {
                 ...this.parent?.(),
@@ -85,35 +86,7 @@ export function codeBlockFeature(options = {}) {
                 detect: (text) => (text ? (lowlight.highlightAuto(text).data?.language ?? null) : null),
             };
         },
-
-        addKeyboardShortcuts() {
-            return {
-                ...this.parent?.(),
-
-                // Tab writes two spaces here rather than indenting the block:
-                // code is indented, and a block of it is not.
-                Tab: ({ editor }) => editor.isActive('codeBlock') && editor.commands.insertContent('  '),
-
-                // Enter writes a line, so leaving takes a key of its own.
-                'Shift-Enter': ({ editor }) =>
-                    editor.isActive('codeBlock') &&
-                    editor
-                        .chain()
-                        .command(({ tr, dispatch }) => {
-                            const end = tr.selection.$head.after();
-
-                            dispatch?.(tr.insert(end, editor.schema.nodes.paragraph.create()));
-
-                            return true;
-                        })
-                        .setTextSelection(editor.state.selection.$head.after() + 1)
-                        .focus()
-                        .run(),
-            };
-        },
     }).configure({ lowlight, defaultLanguage: null });
-
-    const offered = options.offered !== false;
 
     return {
         name: 'codeBlock',
@@ -121,22 +94,13 @@ export function codeBlockFeature(options = {}) {
         // Drawn by the same component whether it is written or read.
         views: { codeBlock: CodeBlockView },
 
-        extensions: [offered ? extension : withoutAuthoring(extension)],
+        // Read with its colours; the ways to write one come with the editor.
+        extensions: [withoutAuthoring(base)],
 
-        menuItems: offered
-            ? [
-                  {
-                      name: 'codeBlock',
-                      glyph: 'code',
-                      keywords: ['code', 'snippet', '```'],
-                      run: (editor) => editor.chain().focus().setCodeBlock().run(),
-                  },
-              ]
-            : [],
-
-        // Enter writes a line here, so a field that sends on Enter has to hold it
-        // back while the caret is inside a fence.
-        holdsEnter: (state) => state?.editor?.isActive('codeBlock') === true,
+        editing: () =>
+            import('./editing/code-block.js').then((module) =>
+                module.codeBlockEditing(base, { offered: options.offered !== false })
+            ),
     };
 }
 

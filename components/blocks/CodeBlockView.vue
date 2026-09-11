@@ -3,11 +3,13 @@ import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
 import { computed, onBeforeUnmount, ref } from 'vue';
 
 import { useRichTextControls } from '../../composables/controls.js';
+import { useEditable } from '../../composables/editable.js';
 import { useRichTextIcons } from '../../composables/icons.js';
 import { richTextLabels } from '../../labels.js';
 import { BlockContent } from '../internal/BlockContent.js';
 
 const props = defineProps(nodeViewProps);
+const editable = useEditable(props.editor);
 
 const controls = useRichTextControls();
 const { icon } = useRichTextIcons();
@@ -38,8 +40,7 @@ const shown = computed(() => {
     return guessed ? `${labels.value.auto} · ${nameOf(guessed)}` : labels.value.auto;
 });
 
-/** Only where the document can be written: a picker read changes nothing. */
-const choose = (language) => props.editor.isEditable && props.updateAttributes({ language });
+const choose = (language) => props.updateAttributes({ language });
 
 const copyLabel = computed(() => (copied.value ? labels.value.copied : labels.value.copy) ?? '');
 
@@ -57,8 +58,10 @@ onBeforeUnmount(() => clearTimeout(clearing));
 <template>
     <NodeViewWrapper data-slot="editor-code-block">
         <div data-slot="editor-code-block-bar" contenteditable="false">
+            <!-- Only where the document can be written: read, a language is not chosen. -->
             <component
                 :is="controls.picker"
+                v-if="editable"
                 :label="labels.language ?? ''"
                 :options="languages"
                 :selected="node.attrs.language"

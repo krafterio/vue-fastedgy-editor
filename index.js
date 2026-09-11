@@ -32,6 +32,7 @@ export * from './menu/core.js';
 export * from './features/registry.js';
 export * from './features/code-block.js';
 export * from './features/image.js';
+export { pickImageFile, pictureCarriers } from './features/editing/image.js';
 export * from './features/link.js';
 export * from './features/mention.js';
 export * from './features/plus-underline.js';
@@ -49,10 +50,13 @@ export * from './composables/pictures.js';
 
 // Extensions
 export * from './extensions/clipboard.js';
+export * from './extensions/editing.js';
 export * from './extensions/image.js';
 export * from './extensions/indent.js';
+export * from './extensions/link.js';
 export * from './extensions/mention.js';
 export * from './extensions/mention-suggestion.js';
+export * from './extensions/record-mention.js';
 export * from './extensions/range-drag.js';
 export * from './extensions/table-duplication.js';
 export * from './extensions/schema.js';

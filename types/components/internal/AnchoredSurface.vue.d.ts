@@ -55,8 +55,8 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
 }>> & Readonly<{
     onClose?: ((...args: any[]) => any) | undefined;
 }>, {
-    rect: Record<string, any>;
     open: boolean;
+    rect: Record<string, any>;
     side: string;
     align: string;
     keepsFocus: boolean;

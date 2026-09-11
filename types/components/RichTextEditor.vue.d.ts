@@ -16,19 +16,13 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly views: {
                 [k: string]: any;
             };
-            readonly menuItems: any[];
-            readonly replacedMenuItems: Set<string>;
-            clipboard(): any;
-            takes(kinds: any): boolean;
-            readonly actions: any[];
-            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
             before(doc: any): any;
             after(blocks: any): any;
-            holdsEnter(state: any): boolean;
+            editing(): Promise<RichTextEditingSet>;
         };
     };
     /** How the field stores what is written: markdown by default. */
@@ -107,19 +101,13 @@ declare const __VLS_base: import("vue").DefineComponent<import("vue").ExtractPro
             readonly views: {
                 [k: string]: any;
             };
-            readonly menuItems: any[];
-            readonly replacedMenuItems: Set<string>;
-            clipboard(): any;
-            takes(kinds: any): boolean;
-            readonly actions: any[];
-            readonly surfaces: ((editor: any, labels: object) => any)[];
             readonly readingSurfaces: ((text: () => Element | null, labels: object) => any)[];
             readonly encoders: any;
             readonly decoders: {};
             readonly inlineRules: ((md: any) => void)[];
             before(doc: any): any;
             after(blocks: any): any;
-            holdsEnter(state: any): boolean;
+            editing(): Promise<RichTextEditingSet>;
         };
     };
     /** How the field stores what is written: markdown by default. */

@@ -5,10 +5,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import RichTextActionBar from '../../components/RichTextActionBar.vue';
 import RichTextEditor from '../../components/RichTextEditor.vue';
-import { richTextExtensions } from '../../extensions/schema.js';
 import { createFeatures } from '../../features/registry.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
 import { todoListFeature } from '../../features/todo-list.js';
+import { editorExtensionsOf } from '../built.js';
 
 const mounted = [];
 const editors = [];
@@ -32,10 +32,10 @@ afterEach(() => {
  * handed looking for a ref: an editor a field is drawing holds the component
  * drawing it, and walking a live component instance is what Vue warns about.
  */
-function editorOf(markdown = '', features = createFeatures([])) {
+async function editorOf(markdown = '', features = createFeatures([])) {
     const editor = new Editor({
         element: document.createElement('div'),
-        extensions: richTextExtensions(features),
+        extensions: await editorExtensionsOf(features),
         content: createMarkdownCodec(features).decode(markdown),
     });
 
@@ -48,6 +48,9 @@ async function barOf(props) {
     const bar = mount(RichTextActionBar, { props, attachTo: document.body });
 
     mounted.push(bar);
+
+    // What the features bring to write with, which the bar loads as an editor does.
+    await props.features?.editing();
     await nextTick();
 
     return bar;
@@ -55,7 +58,7 @@ async function barOf(props) {
 
 describe('the action strip', () => {
     it('offers the same groups as the mobile side, told apart by a rule', async () => {
-        const editor = editorOf('du texte');
+        const editor = await editorOf('du texte');
         const bar = await barOf({ editor, features: createFeatures([]) });
 
         const labels = bar.findAll('[data-slot="editor-tappable"]').map((button) => button.attributes('aria-label'));
@@ -67,7 +70,7 @@ describe('the action strip', () => {
     });
 
     it('offers the arrow only where the row has somewhere left to go', async () => {
-        const editor = editorOf('du texte');
+        const editor = await editorOf('du texte');
         const bar = await barOf({ editor, features: createFeatures([]) });
         const nudges = () =>
             bar.findAll('[data-slot="editor-actions-nudge"]').map((one) => one.attributes('data-side'));
@@ -89,7 +92,7 @@ describe('the action strip', () => {
     });
 
     it('keeps an action it cannot run, and says it cannot', async () => {
-        const editor = editorOf('du texte');
+        const editor = await editorOf('du texte');
         const bar = await barOf({ editor, features: createFeatures([]), labels: { undo: 'Annuler' } });
 
         const undo = bar.get('[aria-label="Annuler"]');
@@ -103,7 +106,7 @@ describe('the action strip', () => {
     });
 
     it('lights up what the caret already wears', async () => {
-        const editor = editorOf('# un titre');
+        const editor = await editorOf('# un titre');
         const bar = await barOf({ editor, features: createFeatures([]), labels: { heading1: 'Titre 1' } });
 
         editor.commands.setTextSelection(3);
@@ -114,14 +117,14 @@ describe('the action strip', () => {
 
     it('takes what a feature adds, in the group the feature names', async () => {
         const features = createFeatures([todoListFeature()]);
-        const editor = editorOf('du texte', features);
+        const editor = await editorOf('du texte', features);
         const bar = await barOf({ editor, features, labels: { todoList: 'Liste de tâches' } });
 
         expect(bar.find('[aria-label="Liste de tâches"]').exists()).toBe(true);
     });
 
     it('leaves the caret where it is when a button is pressed', async () => {
-        const editor = editorOf('du texte');
+        const editor = await editorOf('du texte');
         const bar = await barOf({ editor, features: createFeatures([]), labels: { bold: 'Gras' } });
 
         const pressed = new MouseEvent('mousedown', { bubbles: true, cancelable: true });

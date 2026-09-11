@@ -7,18 +7,21 @@ import python from 'highlight.js/lib/languages/python';
 
 import { codeBlockFeature } from '../../features/code-block.js';
 import { createFeatures } from '../../features/registry.js';
-import { richTextExtensions } from '../../extensions/schema.js';
+import { editorExtensionsOf } from '../built.js';
 
-const mountEditor = (feature, content) =>
-    mount(
+const mountEditor = async (feature, content) => {
+    const extensions = await editorExtensionsOf(createFeatures([feature]));
+
+    return mount(
         defineComponent({
             setup() {
-                const editor = useEditor({ extensions: richTextExtensions(createFeatures([feature])), content });
+                const editor = useEditor({ extensions, content });
 
                 return () => h('div', editor.value ? [h(EditorContent, { editor: editor.value })] : []);
             },
         })
     );
+};
 
 const fence = {
     type: 'doc',
@@ -27,7 +30,7 @@ const fence = {
 
 describe('CodeBlockView', () => {
     it('mounts the language picker and the copy button on the lent bricks', async () => {
-        const mounted = mountEditor(codeBlockFeature({ labels: { copy: 'Copier', auto: 'auto' } }), fence);
+        const mounted = await mountEditor(codeBlockFeature({ labels: { copy: 'Copier', auto: 'auto' } }), fence);
 
         await nextTick();
         await nextTick();
@@ -39,8 +42,8 @@ describe('CodeBlockView', () => {
     });
 
     it('two editors on one view share nothing', async () => {
-        const first = mountEditor(codeBlockFeature(), fence);
-        const second = mountEditor(codeBlockFeature(), fence);
+        const first = await mountEditor(codeBlockFeature(), fence);
+        const second = await mountEditor(codeBlockFeature(), fence);
 
         await nextTick();
         await nextTick();
@@ -85,7 +88,10 @@ describe('the language of a code block, as on mobile', () => {
     });
 
     it('says what guessing made of a block that names no language', async () => {
-        const mounted = mountEditor(codeBlockFeature(), block('const a = () => { return 1; };\nconsole.log(a());'));
+        const mounted = await mountEditor(
+            codeBlockFeature(),
+            block('const a = () => { return 1; };\nconsole.log(a());')
+        );
 
         await settled();
 
@@ -93,7 +99,7 @@ describe('the language of a code block, as on mobile', () => {
     });
 
     it('says the language a block names, by its name', async () => {
-        const mounted = mountEditor(codeBlockFeature(), block('print(1)', 'python'));
+        const mounted = await mountEditor(codeBlockFeature(), block('print(1)', 'python'));
 
         await settled();
 
@@ -101,7 +107,7 @@ describe('the language of a code block, as on mobile', () => {
     });
 
     it('colours the code with the grammar it names', async () => {
-        const mounted = mountEditor(codeBlockFeature(), block('def a(): pass', 'python'));
+        const mounted = await mountEditor(codeBlockFeature(), block('def a(): pass', 'python'));
 
         await settled();
 

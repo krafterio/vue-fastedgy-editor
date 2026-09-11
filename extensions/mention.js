@@ -1,4 +1,4 @@
-import Mention from '@tiptap/extension-mention';
+import { Node } from '@tiptap/core';
 
 /**
  * A mention, as the chip it is edited as.
@@ -7,8 +7,11 @@ import Mention from '@tiptap/extension-mention';
  * record moved elsewhere is the same record, and the paths belong to the
  * application (cf `features/mention.js`). The label is stored too, or the
  * markdown could not be written back.
+ *
+ * What it is made of and how it is drawn, the one declaration the node read and
+ * the node written are both built from (cf `record-mention.js`).
  */
-export const RecordMention = Mention.extend({
+export const MENTION = {
     name: 'mention',
 
     addAttributes() {
@@ -36,6 +39,26 @@ export const RecordMention = Mention.extend({
     renderText({ node }) {
         return node.attrs.label ?? '';
     },
+};
+
+/**
+ * A mention as a document holds one, and nothing to write one with.
+ *
+ * The node tiptap's mention declares, with none of its suggestions: those are
+ * the editor's, and a reader that never writes loads none of them. The mention
+ * feature's editing brings tiptap's own in its place.
+ */
+export const MentionNode = Node.create({
+    group: 'inline',
+    inline: true,
+    selectable: false,
+    atom: true,
+
+    parseHTML() {
+        return [{ tag: `span[data-type="${this.name}"]` }];
+    },
+
+    ...MENTION,
 });
 
 function asId(value) {

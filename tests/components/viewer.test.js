@@ -8,6 +8,8 @@ import { codeBlockFeature } from '../../features/code-block.js';
 import { createFeatures } from '../../features/registry.js';
 import { imageFeature } from '../../features/image.js';
 import { mentionFeature, pathAddressing } from '../../features/mention.js';
+import { todoListFeature } from '../../features/todo-list.js';
+import { built } from '../built.js';
 
 const features = createFeatures([
     imageFeature(),
@@ -60,13 +62,32 @@ describe('RichTextViewer', () => {
         });
 
         await viewer.get('[data-mention]').trigger('click');
-        await nextTick();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        await nextTick();
 
-        expect(document.body.querySelector('[data-slot="editor-mention-preview-title"]')?.textContent).toBe('Courses');
+        // The card is loaded the first time one is asked for.
+        await vi.waitFor(() =>
+            expect(document.body.querySelector('[data-slot="editor-mention-preview-title"]')?.textContent).toBe(
+                'Courses'
+            )
+        );
 
         viewer.unmount();
+    });
+
+    it('draws a task nobody can tick, its feature there or not', async () => {
+        const drawn = viewerOf('- [ ] à faire', createFeatures([todoListFeature()]));
+        const check = drawn.get('[data-slot="editor-task-check"]');
+
+        await check.trigger('click');
+
+        expect(check.element.disabled).toBe(true);
+        expect(check.attributes('aria-checked')).toBe('false');
+
+        const bare = viewerOf('- [ ] à faire', createFeatures([]));
+        const box = bare.get('input[type="checkbox"]');
+
+        await box.trigger('click');
+
+        expect(box.element.checked).toBe(false);
     });
 
     it('mounts ten of them without a single editor', () => {
@@ -120,6 +141,10 @@ describe('a picture clicked', () => {
         const props = component === RichTextEditor ? { features: set, modelValue: value } : { features: set, value };
         const wrapper = mount(component, { props, attachTo: document.body });
 
+        if (component === RichTextEditor) {
+            await built(wrapper);
+        }
+
         await settled();
         await wrapper.get('[data-slot="editor-image"] img').trigger('click');
         await settled();
@@ -133,7 +158,8 @@ describe('a picture clicked', () => {
         it(`opens the package's viewer, ${where}`, async () => {
             const wrapper = await clickedIn(component, createFeatures([imageFeature()]));
 
-            expect(document.body.querySelector('[data-slot="editor-lightbox"]')).not.toBeNull();
+            // Loaded the first time a picture is opened.
+            await vi.waitFor(() => expect(document.body.querySelector('[data-slot="editor-lightbox"]')).not.toBeNull());
 
             wrapper.unmount();
         });

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 
+import { useRichTextEditing } from '../composables/editor.js';
 import { createFeatures } from '../features/registry.js';
 import { alongMargin, RangeDrag } from '../extensions/range-drag.js';
 import { menuItemsOf } from '../menu/core.js';
@@ -45,10 +46,13 @@ const model = defineModel({ type: String, default: '' });
 const editor = ref(null);
 
 /** The page carries the dragging of ranges; a field has no gutter to drag from. */
-const features = computed(() => props.features.and([{ name: 'rangeDrag', extensions: [RangeDrag] }]));
+const features = computed(() =>
+    props.features.and([{ name: 'rangeDrag', editing: () => ({ extensions: [RangeDrag] }) }])
+);
 
 /** What a block can be turned into, from the handle as well as from a slash. */
-const items = computed(() => menuItemsOf(props.features));
+const editing = useRichTextEditing(() => props.features);
+const items = computed(() => menuItemsOf(editing.value));
 
 /** What the package says, under what the application renamed. */
 const said = computed(() => richTextLabels(props.labels));

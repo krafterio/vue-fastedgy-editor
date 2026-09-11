@@ -5,5 +5,5 @@
  * `features/image.js`). The node has to carry it for the round trip to be able
  * to write it back, and `extension-image` alone carries `src` and `alt`.
  */
-export const SizedImage: import("@tiptap/core").Node<import("@tiptap/extension-image").ImageOptions, any>;
+export const SizedImage: any;
 //# sourceMappingURL=image.d.ts.map

@@ -115,22 +115,24 @@ function heading(level) {
  * The entries a set offers, its own first and the features' after, minus what a
  * feature said it stands in for.
  *
- * @param {ReturnType<import('../features/registry.js').createFeatures>} features
+ * @param {import('../features/registry.js').RichTextEditingSet|null} editing
+ *   What the features bring to an editor, the core's alone until it is loaded
  * @returns {object[]}
  */
-export function menuItemsOf(features) {
-    const replaced = features.replacedMenuItems;
+export function menuItemsOf(editing) {
+    const replaced = editing?.replacedMenuItems ?? new Set();
 
-    return [...coreMenuItems().filter((entry) => !replaced.has(entry.name)), ...features.menuItems];
+    return [...coreMenuItems().filter((entry) => !replaced.has(entry.name)), ...(editing?.menuItems ?? [])];
 }
 
 /**
  * The actions a set offers, sorted by group and then by the order they were
  * declared in.
  *
- * @param {ReturnType<import('../features/registry.js').createFeatures>} features
+ * @param {import('../features/registry.js').RichTextEditingSet|null} editing
+ *   What the features bring to an editor, the core's alone until it is loaded
  * @returns {object[]}
  */
-export function actionsOf(features) {
-    return [...coreActions(), ...features.actions].sort((a, b) => (a.group ?? 0) - (b.group ?? 0));
+export function actionsOf(editing) {
+    return [...coreActions(), ...(editing?.actions ?? [])].sort((a, b) => (a.group ?? 0) - (b.group ?? 0));
 }

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 
+import { useRichTextEditing } from '../composables/editor.js';
 import { createFeatures } from '../features/registry.js';
 import { actionsOf } from '../menu/core.js';
 import ActionStrip from './surfaces/ActionStrip.vue';
@@ -28,7 +29,8 @@ const props = defineProps({
     labels: { type: Object, default: () => ({}) },
 });
 
-const actions = computed(() => actionsOf(props.features));
+const editing = useRichTextEditing(() => props.features);
+const actions = computed(() => actionsOf(editing.value));
 
 /** What the package says, under what the application renamed. */
 const said = computed(() => richTextLabels(props.labels));

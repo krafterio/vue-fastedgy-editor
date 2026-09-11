@@ -3,10 +3,12 @@ import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useStorage } from 'vue-fastedgy';
 
+import { useEditable } from '../../composables/editable.js';
 import { attachmentId } from '../../features/image.js';
 import { richTextLabels } from '../../labels.js';
 
 const props = defineProps(nodeViewProps);
+const editable = useEditable(props.editor);
 
 const { attachmentUrl, fileUrl } = useStorage();
 
@@ -145,7 +147,7 @@ const words = computed(() => ({ ...richTextLabels(), ...props.extension.options.
             />
 
             <span
-                v-if="editor.isEditable"
+                v-if="editable"
                 data-slot="editor-image-handle"
                 role="separator"
                 aria-orientation="vertical"

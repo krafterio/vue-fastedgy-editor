@@ -30,6 +30,11 @@ export default defineConfig({
     plugins: [vue(), storage],
     define: { 'import.meta.env.VITE_API_URL': JSON.stringify('') },
 
+    // Every dependency the tests reach, found before the first one runs: one
+    // found halfway reloads the page, and a first run on a fresh checkout
+    // fails before a single test is drawn.
+    optimizeDeps: { entries: ['tests/browser/**/*.test.js'] },
+
     test: {
         include: ['tests/browser/**/*.test.js'],
         browser: {
