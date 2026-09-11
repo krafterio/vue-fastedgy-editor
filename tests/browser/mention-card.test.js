@@ -37,3 +37,22 @@ it('keeps the mark beside the first line of the title, however many follow', asy
 
     card.unmount();
 });
+
+it('floats at the layer of a dialog, so one written from inside a dialog stands above it', async () => {
+    const card = mount(MentionCard, {
+        attachTo: document.body,
+        props: {
+            shown: true,
+            rect: { top: 10, left: 10, bottom: 30, right: 60, width: 50, height: 20, x: 10, y: 10 },
+            preview: { title: 'KASC-5' },
+        },
+    });
+
+    await nextTick();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    // reka lifts the fixed wrapper it portals to the layer of what it wraps.
+    expect(getComputedStyle(document.querySelector('[data-reka-popper-content-wrapper]')).zIndex).toBe('50');
+
+    card.unmount();
+});

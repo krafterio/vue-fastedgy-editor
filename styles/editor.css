@@ -826,14 +826,19 @@
  * `data-state`, `data-side` and `data-highlighted` it writes, and the variables
  * it computes for the space it has, rather than anything measured again here.
  */
+/*
+ * The layer of what floats, the shadcn popovers' own: level with a dialog, and
+ * opened after it, so a bubble or a menu written from inside one stands above
+ * it. An application with other layers says so once, on the root.
+ */
 [data-slot='editor-anchored'] {
-    z-index: 40;
+    z-index: var(--fe-editor-floating-z, 50);
 }
 
 .fe-editor-floating,
 [data-slot='editor-menu-content'],
 [data-slot='editor-picker-content'] {
-    z-index: 40;
+    z-index: var(--fe-editor-floating-z, 50);
     background: var(--fe-editor-surface);
     border: 1px solid var(--fe-editor-subtle-border);
     border-radius: var(--fe-editor-block-radius);
