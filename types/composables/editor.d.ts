@@ -9,6 +9,20 @@
  */
 export function useRichTextEditing(features: import("vue").MaybeRefOrGetter<ReturnType<typeof createFeatures>>): import("vue").ShallowRef<any>;
 /**
+ * What an editor says on an empty line, given what [options] say: the words of
+ * an empty document, or those of an empty paragraph.
+ *
+ * @param {{ emptyPlaceholder?: string, hintPlaceholder?: string }} options
+ * @returns {(said: { node: any, empty: boolean }) => string}
+ */
+export function placeholderOf(options: {
+    emptyPlaceholder?: string;
+    hintPlaceholder?: string;
+}): (said: {
+    node: any;
+    empty: boolean;
+}) => string;
+/**
  * A tiptap editor built from a set of features, and nothing drawn.
  *
  * What `RichTextEditor` mounts, on its own: the schema, what the features add,

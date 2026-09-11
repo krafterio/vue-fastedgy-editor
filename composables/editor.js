@@ -34,6 +34,22 @@ export function useRichTextEditing(features) {
 }
 
 /**
+ * What an editor says on an empty line, given what [options] say: the words of
+ * an empty document, or those of an empty paragraph.
+ *
+ * @param {{ emptyPlaceholder?: string, hintPlaceholder?: string }} options
+ * @returns {(said: { node: any, empty: boolean }) => string}
+ */
+export function placeholderOf(options) {
+    return ({ node, empty }) =>
+        empty
+            ? (options.emptyPlaceholder ?? '')
+            : node.type.name === 'paragraph'
+              ? (options.hintPlaceholder ?? '')
+              : '';
+}
+
+/**
  * A tiptap editor built from a set of features, and nothing drawn.
  *
  * What `RichTextEditor` mounts, on its own: the schema, what the features add,
@@ -60,6 +76,7 @@ export function useRichTextEditor(options = {}) {
     const features = options.features ?? createFeatures([]);
     const codec = options.codec ?? createMarkdownCodec(features);
     const editor = shallowRef(null);
+    const said = placeholderOf(options);
     let gone = false;
 
     onMounted(async () => {
@@ -76,12 +93,7 @@ export function useRichTextEditor(options = {}) {
             extensions: [
                 ...richTextEditorExtensions(features, editing),
                 Placeholder.configure({
-                    placeholder: ({ editor: current, node }) =>
-                        current.isEmpty
-                            ? (options.emptyPlaceholder ?? '')
-                            : node.type.name === 'paragraph'
-                              ? (options.hintPlaceholder ?? '')
-                              : '',
+                    placeholder: ({ editor: current, node }) => said({ node, empty: current.isEmpty }),
                 }),
                 richTextClipboard({ codec, carriers: editing.clipboard() }),
             ],

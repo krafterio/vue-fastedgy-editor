@@ -16,6 +16,11 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: ObjectConstructor;
         default: null;
     };
+    /** What an editor that has just opened it says on its empty line, `({ node, empty }) => words`. */
+    placeholder: {
+        type: FunctionConstructor;
+        default: null;
+    };
 }>, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
     /** The document to draw, markdown or a decoded document. */
     value: {
@@ -32,8 +37,14 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: ObjectConstructor;
         default: null;
     };
+    /** What an editor that has just opened it says on its empty line, `({ node, empty }) => words`. */
+    placeholder: {
+        type: FunctionConstructor;
+        default: null;
+    };
 }>> & Readonly<{}>, {
     value: string | Record<string, any>;
+    placeholder: Function;
     codec: Record<string, any>;
 }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 //# sourceMappingURL=RichTextBlocks.vue.d.ts.map

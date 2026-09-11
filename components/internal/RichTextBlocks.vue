@@ -12,6 +12,9 @@ const props = defineProps({
 
     /** How to read [value] when it is markdown, the features' own by default. */
     codec: { type: Object, default: null },
+
+    /** What an editor that has just opened it says on its empty line, `({ node, empty }) => words`. */
+    placeholder: { type: Function, default: null },
 });
 
 const reader = computed(() => createRichTextReader(props.features));
@@ -21,7 +24,7 @@ const document = computed(() =>
     typeof props.value === 'string' ? codec.value.decode(props.value) : (props.value ?? { type: 'doc', content: [] })
 );
 
-const blocks = computed(() => reader.value.draw(document.value));
+const blocks = computed(() => reader.value.draw(document.value, { placeholder: props.placeholder }));
 </script>
 
 <template>

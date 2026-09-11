@@ -3,7 +3,7 @@ import { EditorContent } from '@tiptap/vue-3';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import { useFileDropZone } from 'vue-fastedgy';
 
-import { useRichTextEditing, useRichTextEditor, writeInto } from '../composables/editor.js';
+import { placeholderOf, useRichTextEditing, useRichTextEditor, writeInto } from '../composables/editor.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
 import { actionsOf, menuItemsOf } from '../menu/core.js';
@@ -54,6 +54,13 @@ const model = defineModel({ type: String, default: '' });
 
 const codec = computed(() => props.codec ?? createMarkdownCodec(props.features));
 const menu = ref(null);
+
+/** What the field says on an empty line, only where it can be written in, as tiptap's. */
+const placeholder = computed(() =>
+    props.editable
+        ? placeholderOf({ emptyPlaceholder: props.emptyPlaceholder, hintPlaceholder: props.hintPlaceholder })
+        : null
+);
 
 /** What the features bring to write with, loaded with the editor. */
 const editing = useRichTextEditing(() => props.features);
@@ -170,7 +177,7 @@ function onKeyDown(event) {
               without anything moving. A document of any weight shows at once.
             -->
             <div v-else data-slot="editor-content" :style="style">
-                <RichTextBlocks :value="model" :features="features" :codec="codec" />
+                <RichTextBlocks :value="model" :features="features" :codec="codec" :placeholder="placeholder" />
             </div>
 
             <slot name="trailing" />

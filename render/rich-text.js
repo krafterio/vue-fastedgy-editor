@@ -3,10 +3,11 @@ import {
     getExtensionField,
     getRenderedAttributes,
     getSchemaByResolvedExtensions,
+    isNodeEmpty,
     resolveExtensions,
 } from '@tiptap/core';
-import { EditorState } from '@tiptap/pm/state';
-import { DecorationSet } from '@tiptap/pm/view';
+import { EditorState, Selection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { cloneVNode, defineComponent, h, provide, ref } from 'vue';
 
 import { HELD_CONTENT } from '../components/internal/BlockContent.js';
@@ -81,12 +82,15 @@ function readerOf(features) {
 
         /**
          * @param {object} doc - ProseMirror JSON
+         * @param {{ placeholder?: ((said: { node: any, empty: boolean }) => string)|null }} [options]
+         *   What an editor that has just opened [doc] says on its empty line, as it says it
          * @returns {any[]}
          */
-        draw: (doc) => {
+        draw: (doc, options = {}) => {
             const read = documentOf(schema, doc);
+            const laid = withPlaceholder(decorationsOf(read, context.decorating), read, options.placeholder);
 
-            return childrenOf(read, context, decorationsOf(read, context.decorating), 0);
+            return childrenOf(read, context, laid, 0);
         },
     };
 }
@@ -186,6 +190,38 @@ function decorationsOf(doc, decorating) {
               doc,
               sets.flatMap((set) => set.find())
           );
+}
+
+/**
+ * What an editor says on the line its caret starts on, laid over [decorated].
+ *
+ * tiptap's `Placeholder`, as the editor configures it, read of the state an
+ * editor opens on: the caret at the start, and the textblock it stands in, when
+ * it holds nothing, carrying the words and the classes the stylesheet shows
+ * them by. An editor draws this while it is built, so the field it becomes says
+ * the same thing from the first frame.
+ */
+function withPlaceholder(decorated, doc, placeholder) {
+    if (!placeholder) {
+        return decorated;
+    }
+
+    const { anchor } = Selection.atStart(doc);
+    const resolved = doc.resolve(anchor);
+    const node = resolved.depth > 0 ? resolved.node(1) : resolved.nodeAfter;
+    const start = resolved.depth > 0 ? resolved.before(1) : anchor;
+
+    if (!node?.type.isTextblock || !isNodeEmpty(node)) {
+        return decorated;
+    }
+
+    const empty = isNodeEmpty(doc);
+    const said = Decoration.node(start, start + node.nodeSize, {
+        class: empty ? 'is-empty is-editor-empty' : 'is-empty',
+        'data-placeholder': placeholder({ node, empty }),
+    });
+
+    return DecorationSet.create(doc, [...decorated.find(), said]);
 }
 
 /**

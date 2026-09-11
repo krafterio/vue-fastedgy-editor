@@ -326,6 +326,62 @@ it('draws the dark theme in its own colours, which the dark renderings are compa
     expect(await difference(dark.pixels, light.pixels)).not.toBeNull();
 });
 
+describe('a field while its editor is built, and once it is', () => {
+    const fields = {
+        'empty, saying what to write': '',
+        'opening on an empty line, saying what goes there': '&nbsp;\n\nla suite',
+    };
+
+    for (const [name, value] of Object.entries(fields)) {
+        it(`draws a field ${name} at the same pixels`, async () => {
+            let release;
+            const held = new Promise((resolve) => (release = resolve));
+            const set = features.and([{ name: 'held', editing: () => held.then(() => ({})) }]);
+            const holder = document.createElement('div');
+
+            holder.style.cssText = 'position:absolute;left:0;top:0;width:560px;background:#fff';
+            document.body.appendChild(holder);
+
+            const wrapper = mount(RichTextEditor, {
+                props: {
+                    features: set,
+                    modelValue: value,
+                    emptyPlaceholder: 'Écrire…',
+                    hintPlaceholder: 'Taper « / »',
+                },
+                attachTo: holder,
+                global: { plugins: [createPinia(), createFetcher()] },
+            });
+
+            mounted.push(wrapper);
+
+            // Taken twice, as every capture here is: the first a page takes is a
+            // pixel off the rest.
+            await settled();
+            await page.screenshot({ element: wrapper.element, save: false });
+
+            const root = wrapper.element;
+            const whileBuilt = {
+                layout: layoutOf(content(root)),
+                pixels: await page.screenshot({ element: root, save: false }),
+            };
+
+            release();
+            await expect.poll(() => root.querySelector('.ProseMirror[contenteditable]')).not.toBeNull();
+            await settled();
+
+            const built = {
+                layout: layoutOf(content(root)),
+                pixels: await page.screenshot({ element: root, save: false }),
+            };
+
+            expect(root.querySelector('[data-placeholder]')?.getAttribute('data-placeholder')).toBeTruthy();
+            expect(whileBuilt.layout).toEqual(built.layout);
+            expect(await difference(whileBuilt.pixels, built.pixels)).toBeNull();
+        });
+    }
+});
+
 describe('a page and its cover, written, locked and read', () => {
     const pages = {
         'with a cover': { cover: 'covers/cover.png' },
