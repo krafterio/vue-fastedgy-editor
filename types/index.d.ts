@@ -1,5 +1,6 @@
 export { default as DocumentEditor } from "./components/DocumentEditor.vue";
 export { default as DocumentViewer } from "./components/DocumentViewer.vue";
+export { default as MentionPreviewHead } from "./components/surfaces/MentionPreviewHead.vue";
 export { default as RichTextActionBar } from "./components/RichTextActionBar.vue";
 export { default as RichTextEditor } from "./components/RichTextEditor.vue";
 export { default as RichTextViewer } from "./components/RichTextViewer.vue";

@@ -1,5 +1,6 @@
 <script setup>
 import AnchoredSurface from '../internal/AnchoredSurface.vue';
+import MentionPreviewHead from './MentionPreviewHead.vue';
 import { useRichTextControls } from '../../composables/controls.js';
 
 defineProps({
@@ -10,6 +11,8 @@ defineProps({
     rect: { type: Object, default: null },
 
     loading: { type: Boolean, default: false },
+
+    /** `card` to draw it whole, or `title`, `subtitle`, `leading` and `facts`. */
     preview: { type: Object, default: null },
 
     /** Whether the card offers the way to what the mention points at. */
@@ -37,27 +40,23 @@ const controls = useRichTextControls();
               once more with nothing to show before reka takes it away.
             -->
             <template v-else-if="preview">
-                <div data-slot="editor-mention-preview-head">
-                    <!-- One line tall: a mark stands beside the first line of the title, however many follow. -->
-                    <span v-if="preview.leading" data-slot="editor-mention-preview-leading">
-                        <component :is="preview.leading" />
-                    </span>
+                <!-- A preview carrying a `card` draws its own, `MentionPreviewHead` included. -->
+                <component :is="preview.card" v-if="preview.card" />
 
-                    <div data-slot="editor-mention-preview-said">
-                        <p data-slot="editor-mention-preview-title">{{ preview.title }}</p>
+                <template v-else>
+                    <MentionPreviewHead
+                        :leading="preview.leading"
+                        :title="preview.title"
+                        :subtitle="preview.subtitle"
+                    />
 
-                        <p v-if="preview.subtitle" data-slot="editor-mention-preview-subtitle">
-                            {{ preview.subtitle }}
-                        </p>
-                    </div>
-                </div>
-
-                <dl v-if="preview.facts?.length" data-slot="editor-mention-preview-facts">
-                    <template v-for="[said, value] in preview.facts" :key="said">
-                        <dt>{{ said }}</dt>
-                        <dd>{{ value }}</dd>
-                    </template>
-                </dl>
+                    <dl v-if="preview.facts?.length" data-slot="editor-mention-preview-facts">
+                        <template v-for="[said, value] in preview.facts" :key="said">
+                            <dt>{{ said }}</dt>
+                            <dd>{{ value }}</dd>
+                        </template>
+                    </dl>
+                </template>
 
                 <div v-if="action" data-slot="editor-mention-preview-action">
                     <component :is="controls.button" :label="labels.open ?? ''" :on-tap="() => $emit('follow')" />

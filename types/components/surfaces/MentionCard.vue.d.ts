@@ -15,6 +15,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: BooleanConstructor;
         default: boolean;
     };
+    /** `card` to draw it whole, or `title`, `subtitle`, `leading` and `facts`. */
     preview: {
         type: ObjectConstructor;
         default: null;
@@ -46,6 +47,7 @@ declare const __VLS_export: import("vue").DefineComponent<import("vue").ExtractP
         type: BooleanConstructor;
         default: boolean;
     };
+    /** `card` to draw it whole, or `title`, `subtitle`, `leading` and `facts`. */
     preview: {
         type: ObjectConstructor;
         default: null;

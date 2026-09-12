@@ -8,6 +8,20 @@ import MentionCard from '../../components/surfaces/MentionCard.vue';
 
 const Mark = defineComponent({ setup: () => () => h('svg', { width: 16, height: 16, 'data-mark': '' }) });
 
+/** The middle of the letters on a line: a box an x-height tall, sat on the baseline. */
+function inkCentreOf(element) {
+    const probe = document.createElement('span');
+
+    probe.style.cssText = 'display:inline-block;width:1px;height:1ex;vertical-align:baseline';
+    element.prepend(probe);
+
+    const { bottom, height } = probe.getBoundingClientRect();
+
+    probe.remove();
+
+    return bottom - height / 2;
+}
+
 it('keeps the mark beside the first line of the title, however many follow', async () => {
     const card = mount(MentionCard, {
         attachTo: document.body,
@@ -27,13 +41,11 @@ it('keeps the mark beside the first line of the title, however many follow', asy
 
     const title = document.querySelector('[data-slot="editor-mention-preview-title"]');
     const mark = document.querySelector('[data-mark]').getBoundingClientRect();
-    const [firstLine] = [...title.getClientRects()];
     const lines = Math.round(title.getBoundingClientRect().height / parseFloat(getComputedStyle(title).lineHeight));
 
     expect(lines).toBeGreaterThan(1);
-    expect(
-        Math.abs(mark.top + mark.height / 2 - (firstLine.top + parseFloat(getComputedStyle(title).lineHeight) / 2))
-    ).toBeLessThan(1.5);
+    // Level with the letters of the first line, not with the box holding them.
+    expect(Math.abs(mark.top + mark.height / 2 - inkCentreOf(title))).toBeLessThan(0.6);
 
     card.unmount();
 });
