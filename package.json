@@ -1,6 +1,6 @@
 {
     "name": "vue-fastedgy-editor",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "Rich text and document editor for FastEdgy applications, on Tiptap, storing documents as markdown",
     "type": "module",
     "main": "./index.js",
