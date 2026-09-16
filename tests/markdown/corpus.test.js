@@ -2,9 +2,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getSchema } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 
 import { createFeatures } from '../../features/registry.js';
+import { richTextExtensions } from '../../extensions/schema.js';
 import { imageFeature } from '../../features/image.js';
 import { linkFeature } from '../../features/link.js';
 import { mentionFeature, pathAddressing } from '../../features/mention.js';
@@ -18,15 +20,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../fixtures/markd
 // an addressing a mention is only a link, on either side.
 const addressing = pathAddressing({ note: '/notes/{id}', user: '/household/members/{id}' });
 
-const codec = createMarkdownCodec(
-    createFeatures([
-        tableFeature(),
-        imageFeature(),
-        linkFeature(),
-        mentionFeature({ addressing }),
-        plusUnderlineFeature(),
-    ])
-);
+const features = createFeatures([
+    tableFeature(),
+    imageFeature(),
+    linkFeature(),
+    mentionFeature({ addressing }),
+    plusUnderlineFeature(),
+]);
+const codec = createMarkdownCodec(features);
+// Tiptap answers a document its schema refuses with a blank one, in silence.
+const schema = getSchema(richTextExtensions(features));
+const holds = (doc) => expect(() => schema.nodeFromJSON(doc).check()).not.toThrow();
 
 const fixturesIn = (folder) =>
     readdirSync(folder)
@@ -50,6 +54,10 @@ describe('canonical corpus', () => {
             expect(outlineOf(codec.decode(markdown))).toEqual(outline);
         });
 
+        it(`${name}: what is read holds in the editor`, () => {
+            holds(codec.decode(markdown));
+        });
+
         it(`${name}: writing gives the source back`, () => {
             expect(codec.encode(codec.decode(markdown))).toBe(markdown);
         });
@@ -70,6 +78,10 @@ describe('lenient corpus', () => {
 
         it(`${name}: reading gives the expected document`, () => {
             expect(outlineOf(codec.decode(markdown))).toEqual(outline);
+        });
+
+        it(`${name}: what is read holds in the editor`, () => {
+            holds(codec.decode(markdown));
         });
 
         it(`${name}: what is rewritten from it is stable`, () => {

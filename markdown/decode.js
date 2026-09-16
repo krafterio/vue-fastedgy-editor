@@ -176,12 +176,18 @@ function paragraphOf(token) {
     return { type: 'paragraph', ...(blank || content.length === 0 ? {} : { content }) };
 }
 
-const TASK = /^\[([ xX])\]\s+/;
+const TASK = /^\[([ xX])\](?:\s+|$)/;
 
-/** A list item, turned into a task where markdown wrote it one. */
-function itemOf(paragraph, number) {
+/**
+ * A list item, turned into a task where markdown wrote it one.
+ *
+ * The box is looked for in [source], the words as written: read, `\[ ]` has
+ * lost its backslash, and a bullet saying `[ ]` could never be written so as to
+ * come back a bullet.
+ */
+function itemOf(paragraph, number, source) {
     const first = paragraph.content?.[0];
-    const marker = first?.type === 'text' ? TASK.exec(first.text) : null;
+    const marker = first?.type === 'text' && TASK.test(source) ? TASK.exec(first.text) : null;
 
     if (!marker) {
         return { type: 'listItem', attrs: { number }, content: [paragraph] };
@@ -278,7 +284,9 @@ export function decodeChunk(markdown, options = {}) {
                 break;
 
             case 'list_item_open': {
-                blocks.push(itemOf(paragraphOf(bodyOf(tokens, at, 'list_item_close')), number));
+                const body = bodyOf(tokens, at, 'list_item_close');
+
+                blocks.push(itemOf(paragraphOf(body), number, body?.content ?? ''));
 
                 if (number !== null) {
                     number++;
@@ -294,7 +302,25 @@ export function decodeChunk(markdown, options = {}) {
         }
     }
 
-    return blocks.map((block) => (block.content?.length === 0 ? { ...block, content: undefined } : block));
+    return blocks.map(withoutEmpty);
+}
+
+/**
+ * [node] without an empty text or an empty `content` anywhere in it.
+ *
+ * ProseMirror refuses both, and Tiptap answers a refused document with a blank
+ * one, in silence: a single empty run left by a branch or a feature would wipe
+ * the whole field. Pruned once here, on the way out, whoever produced it.
+ */
+function withoutEmpty(node) {
+    if (!Array.isArray(node.content)) {
+        return node;
+    }
+
+    const content = node.content.filter((child) => child.type !== 'text' || child.text).map(withoutEmpty);
+    const { content: _, ...rest } = node;
+
+    return content.length > 0 ? { ...rest, content } : rest;
 }
 
 /**
@@ -358,7 +384,7 @@ export function decodeDocument(source, options = {}) {
 
     const content = options.features?.after ? options.features.after(grouped(blocks)) : grouped(blocks);
 
-    return content.length === 0 ? blankDocument() : { type: 'doc', content };
+    return content.length === 0 ? blankDocument() : withoutEmpty({ type: 'doc', content });
 }
 
 /**

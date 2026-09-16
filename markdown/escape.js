@@ -75,6 +75,13 @@ export function escapedAt(block, offsets) {
     const content = block.content ?? [];
     const first = content[0];
 
+    // An item or a quote holds its words in a paragraph of its own.
+    if (first?.type === 'paragraph') {
+        const inner = escapedAt(first, offsets);
+
+        return inner && { ...block, content: [inner, ...content.slice(1)] };
+    }
+
     if (first?.type !== 'text' || offsets.at(-1) >= first.text.length) {
         return null;
     }

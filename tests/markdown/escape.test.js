@@ -44,6 +44,15 @@ describe('escapedAt', () => {
 
         expect(escapedAt(block, [3])).toBeNull();
     });
+
+    it('writes into the paragraph an item or a quote holds', () => {
+        const block = {
+            type: 'blockquote',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: '# a' }] }],
+        };
+
+        expect(escapedAt(block, [0]).content[0].content[0].text).toBe('\\# a');
+    });
 });
 
 // No list decides what is escaped: the block is written, read back, compared
@@ -65,6 +74,33 @@ describe('escaping by reading back', () => {
             expect(markdown).toBe(expected);
             expect(codec.decode(markdown).content[0].type).toBe('paragraph');
             expect(codec.decode(markdown).content[0].content[0].text).toBe(text);
+        });
+    }
+
+    const held = [
+        ['blockquote', '# pas un titre', '> \\# pas un titre'],
+        ['blockquote', '- pas une puce', '> \\- pas une puce'],
+        ['bulletList', '[ ] pas une tâche', '* \\[ ] pas une tâche'],
+        ['bulletList', '[x]', '* \\[x]'],
+        ['bulletList', '# pas un titre', '* \\# pas un titre'],
+    ];
+
+    for (const [type, text, expected] of held) {
+        it(`writes ${JSON.stringify(text)} in a ${type} so that it reads back`, () => {
+            const words = { type: 'paragraph', content: [{ type: 'text', text }] };
+            const block =
+                type === 'blockquote'
+                    ? { type, attrs: { indent: 0 }, content: [words] }
+                    : {
+                          type,
+                          attrs: { indent: 0 },
+                          content: [{ type: 'listItem', attrs: { indent: 0 }, content: [words] }],
+                      };
+            const doc = { type: 'doc', content: [block] };
+            const markdown = codec.encode(doc);
+
+            expect(markdown).toBe(expected);
+            expect(codec.decode(markdown)).toEqual(doc);
         });
     }
 
