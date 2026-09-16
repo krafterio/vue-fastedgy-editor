@@ -98,6 +98,21 @@ export function useRichTextEditor(options?: {
  */
 export function spillsInto(editor: () => any): (event: KeyboardEvent) => void;
 /**
+ * [content] as a document [schema] holds, each block it refuses written as the
+ * words that block held.
+ *
+ * Whatever the codec, the application's own included, a block the schema
+ * refuses must not cost the others: tiptap opens a refused document blank, with
+ * a warning nobody reads, and the next keystroke saves the field emptied. A
+ * shape it refuses without a word, a list with no item, breaks the first edit
+ * made near it.
+ *
+ * @param {import('@tiptap/pm/model').Schema} schema
+ * @param {object} content - A document, in the shape the codec decodes to
+ * @returns {object}
+ */
+export function holdable(schema: import("@tiptap/pm/model").Schema, content: object): object;
+/**
  * Writes [content] into [editor], replacing only the blocks that differ.
  *
  * A document handed over whole is a document rebuilt whole: the caret goes back

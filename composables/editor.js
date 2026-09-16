@@ -1,3 +1,4 @@
+import { getSchema } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Editor } from '@tiptap/vue-3';
 import { onBeforeUnmount, onMounted, shallowRef, toValue, watch } from 'vue';
@@ -6,6 +7,8 @@ import { richTextClipboard } from '../extensions/clipboard.js';
 import { richTextEditorExtensions } from '../extensions/editing.js';
 import { createFeatures } from '../features/registry.js';
 import { createMarkdownCodec } from '../markdown/codec.js';
+import { blankDocument } from '../markdown/decode.js';
+import { plainText } from '../markdown/encode.js';
 
 /**
  * What [features] bring to an editor, once it is loaded.
@@ -88,17 +91,18 @@ export function useRichTextEditor(options = {}) {
             return;
         }
 
+        const extensions = [
+            ...richTextEditorExtensions(features, editing),
+            Placeholder.configure({
+                placeholder: ({ editor: current, node }) => said({ node, empty: current.isEmpty }),
+            }),
+            richTextClipboard({ codec, carriers: editing.clipboard() }),
+        ];
+
         editor.value = new Editor({
             editable: toValue(options.editable) !== false,
-            content: codec.decode(toValue(options.content) ?? ''),
-
-            extensions: [
-                ...richTextEditorExtensions(features, editing),
-                Placeholder.configure({
-                    placeholder: ({ editor: current, node }) => said({ node, empty: current.isEmpty }),
-                }),
-                richTextClipboard({ codec, carriers: editing.clipboard() }),
-            ],
+            content: holdable(getSchema(extensions), codec.decode(toValue(options.content) ?? '')),
+            extensions,
 
             // Only what changed the document: tiptap also says `update` when an
             // editor is locked or unlocked, announcing a document a new value may
@@ -168,6 +172,42 @@ export function spillsInto(editor) {
 }
 
 /**
+ * [content] as a document [schema] holds, each block it refuses written as the
+ * words that block held.
+ *
+ * Whatever the codec, the application's own included, a block the schema
+ * refuses must not cost the others: tiptap opens a refused document blank, with
+ * a warning nobody reads, and the next keystroke saves the field emptied. A
+ * shape it refuses without a word, a list with no item, breaks the first edit
+ * made near it.
+ *
+ * @param {import('@tiptap/pm/model').Schema} schema
+ * @param {object} content - A document, in the shape the codec decodes to
+ * @returns {object}
+ */
+export function holdable(schema, content) {
+    const blocks = (content?.content ?? []).flatMap((block) => {
+        try {
+            const node = schema.nodeFromJSON(block);
+
+            node.check();
+
+            if (schema.topNodeType.contentMatch.matchType(node.type)) {
+                return [block];
+            }
+        } catch {
+            // Refused, and said below as the words it held.
+        }
+
+        const text = plainText(block);
+
+        return text.length > 0 ? [{ type: 'paragraph', content: [{ type: 'text', text }] }] : [];
+    });
+
+    return blocks.length > 0 ? { ...content, content: blocks } : blankDocument();
+}
+
+/**
  * Writes [content] into [editor], replacing only the blocks that differ.
  *
  * A document handed over whole is a document rebuilt whole: the caret goes back
@@ -185,7 +225,7 @@ export function spillsInto(editor) {
  */
 export function writeInto(editor, content) {
     const held = editor.state.doc;
-    const given = editor.schema.nodeFromJSON(content);
+    const given = editor.schema.nodeFromJSON(holdable(editor.schema, content));
 
     if (held.eq(given)) {
         return false;

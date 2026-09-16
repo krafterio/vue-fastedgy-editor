@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { editingExtensions } from '../../extensions/editing.js';
 import { coreExtensions } from '../../extensions/schema.js';
 import { createMarkdownCodec } from '../../markdown/codec.js';
-import { writeInto } from '../../composables/editor.js';
+import { holdable, writeInto } from '../../composables/editor.js';
 
 const codec = createMarkdownCodec();
 const editors = [];
@@ -87,5 +87,43 @@ describe('writing a document into an editor', () => {
         // Undone back to before what was typed here, never back over what came
         // from elsewhere: the picture a server stored under a name of its own.
         expect(said(editor)).toEqual(['du pain de la veille', 'du lait', 'des œufs']);
+    });
+});
+
+// What a codec hands over is not always what the schema holds: a feature, an
+// older client or the application's own codec may write a block it refuses.
+describe('a document the schema refuses in part', () => {
+    const words = (text) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+    const refused = {
+        type: 'doc',
+        content: [
+            words('du pain'),
+            { type: 'nope', content: [{ type: 'text', text: 'du lait' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: '' }] },
+            { type: 'bulletList', content: [] },
+            { type: 'listItem', content: [words('des œufs')] },
+        ],
+    };
+
+    it('keeps every block it holds, and the words of every other', () => {
+        const schema = editorWith('').schema;
+
+        expect(holdable(schema, refused).content).toEqual([words('du pain'), words('du lait'), words('des œufs')]);
+    });
+
+    it('opens blank rather than on nothing when no block holds', () => {
+        const schema = editorWith('').schema;
+
+        expect(holdable(schema, { type: 'doc', content: [{ type: 'bulletList', content: [] }] })).toEqual({
+            type: 'doc',
+            content: [{ type: 'paragraph' }],
+        });
+    });
+
+    it('is written into an editor without throwing', () => {
+        const editor = editorWith('du pain');
+
+        expect(() => writeInto(editor, refused)).not.toThrow();
+        expect(said(editor)).toEqual(['du pain', 'du lait', 'des œufs']);
     });
 });

@@ -40,6 +40,22 @@ async function editorOf(props = {}) {
 }
 
 describe('RichTextEditor', () => {
+    it('opens on the blocks it holds when the codec hands over one it refuses', async () => {
+        const codec = {
+            encode: () => '',
+            decode: () => ({
+                type: 'doc',
+                content: [
+                    { type: 'paragraph', content: [{ type: 'text', text: 'gardé' }] },
+                    { type: 'paragraph', content: [{ type: 'text', text: '' }] },
+                ],
+            }),
+        };
+        const mounted = await editorOf({ modelValue: 'x', codec });
+
+        expect(mounted.find('.ProseMirror').text()).toBe('gardé');
+    });
+
     it('opens on what the field holds and writes back what was typed', async () => {
         const mounted = await editorOf({ modelValue: '# titre' });
 
