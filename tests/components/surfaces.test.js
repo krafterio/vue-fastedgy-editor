@@ -97,6 +97,10 @@ describe('TableHandles', () => {
         const editor = await editorWith(features, table);
         const mounted = await mountSurfaces(features, editor);
 
+        // On the page, as an editor always is: the handles follow the pointer
+        // across the whole document, not only inside the editor.
+        document.body.append(editor.options.element);
+
         // The holder is always there, being what every handle is measured
         // against; what comes and goes is the handles.
         expect(mounted.find('[data-slot="editor-table-handles"]').exists()).toBe(true);

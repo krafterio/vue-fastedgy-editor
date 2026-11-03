@@ -1,4 +1,5 @@
 <script setup>
+import { Selection } from '@tiptap/pm/state';
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
 
 import { useRichTextControls } from '../../composables/controls.js';
@@ -27,66 +28,79 @@ const rect = ref(null);
 const holder = useTemplateRef('holder');
 const origin = ref({ left: 0, top: 0 });
 
-/** The table the pointer is over, and the position it starts at. */
-function follow(event) {
-    const element = event.target instanceof Element ? event.target.closest('table') : null;
-    if (!element || !props.editor.view.dom.contains(element)) {
-        table.value = null;
-        rect.value = null;
-
-        return;
-    }
-
+function show(element) {
     table.value = element;
     rect.value = element.getBoundingClientRect();
     origin.value = holder.value?.getBoundingClientRect() ?? { left: 0, top: 0 };
 }
 
-function clear(event) {
-    if (!event.relatedTarget || !props.editor.view.dom.contains(event.relatedTarget)) {
-        table.value = null;
-        rect.value = null;
-    }
+function hide() {
+    table.value = null;
+    rect.value = null;
 }
 
-// The element the listeners were posted on, kept for the moment they are taken
-// back: an editor being destroyed has no view left to ask.
-let listening = null;
+/** Whether a handle's menu is open: the handle it hangs from has to stay. */
+const menuOpen = () => Boolean(holder.value?.querySelector('[data-state="open"]'));
 
-onMounted(() => {
-    listening = props.editor.view.dom;
-    props.editor.view.dom.addEventListener('pointermove', follow);
-    props.editor.view.dom.addEventListener('pointerleave', clear);
-});
-
-onBeforeUnmount(() => {
-    listening?.removeEventListener('pointermove', follow);
-    listening?.removeEventListener('pointerleave', clear);
-});
-
-const columns = computed(() => {
-    const cells = table.value?.rows?.[0]?.cells ?? [];
-
-    return [...cells].map((cell) => cell.getBoundingClientRect());
-});
-
-const rows = computed(() => [...(table.value?.rows ?? [])].map((row) => row.getBoundingClientRect()));
-
-/**
- * Runs [command] on the cell a handle points at.
- *
- * A table command reads the selection, so the selection goes there first: the
- * handle of the third column has to mean the third column, not wherever the
- * caret happened to be.
+/*
+ * Where the pointer is on the page decides, not whether it is in the editor:
+ * over a table of this editor, its handles; over a handle, or anywhere while a
+ * handle's menu is open, the same ones; anywhere else, none. Asked of the
+ * editor alone, the handles went the moment the pointer left the table to
+ * reach them.
  */
-function on(cell, command) {
-    const at = props.editor.view.posAtCoords({ left: cell.left + 4, top: cell.top + 4 });
+function follow(event) {
+    const target = event.target instanceof Element ? event.target : null;
 
-    if (!at) {
+    if (holder.value?.contains(target) || (table.value && menuOpen())) {
         return;
     }
 
-    command(props.editor.chain().focus().setTextSelection(at.pos)).run();
+    const element = target?.closest('table');
+
+    if (element && props.editor.view.dom.contains(element)) {
+        show(element);
+    } else if (table.value) {
+        hide();
+    }
+}
+
+onMounted(() => document.addEventListener('pointermove', follow));
+
+onBeforeUnmount(() => document.removeEventListener('pointermove', follow));
+
+// The cells heading each column and the rows, with where they are drawn: measured
+// again with the table, which moves as the page scrolls and changes shape under a
+// command.
+const measured = (elements) => [...elements].map((element) => ({ element, box: element.getBoundingClientRect() }));
+
+const columns = computed(() => (rect.value ? measured(table.value?.rows?.[0]?.cells ?? []) : []));
+
+const rows = computed(() => (rect.value ? measured(table.value?.rows ?? []) : []));
+
+/**
+ * Runs [command] on the cell a handle points at, a row being reached by its
+ * first cell.
+ *
+ * A table command reads the selection, so the selection goes there first: the
+ * handle of the third column has to mean the third column, not wherever the
+ * caret happened to be. The cell is asked by its element rather than by a point
+ * of the page, where a handle may be standing.
+ */
+function on({ element }, command) {
+    const cell = element.matches('td, th') ? element : element.querySelector('td, th');
+
+    if (!cell) {
+        return;
+    }
+
+    const { view } = props.editor;
+    const inside = Selection.near(view.state.doc.resolve(view.posAtDOM(cell, 0)));
+
+    command(props.editor.chain().focus().setTextSelection(inside.from)).run();
+
+    // The table has another shape now, or is gone with its last row.
+    requestAnimationFrame(() => (table.value?.isConnected ? show(table.value) : hide()));
 }
 
 const columnActions = (cell) => [
@@ -147,20 +161,24 @@ const placed = (left, top, width, height) => ({
     height: `${Math.round(height)}px`,
 });
 
-const at = (cell, side) =>
+/** The side of a grip, which stands astride the rule it takes, as on the mobile side. */
+const GRIP = 14;
+
+const at = ({ box }, side) =>
     side === 'row'
-        ? placed(rect.value.left - 18, cell.top, 14, cell.height)
-        : placed(cell.left, rect.value.top - 18, cell.width, 14);
+        ? placed(rect.value.left - GRIP / 2, box.top, GRIP, box.height)
+        : placed(box.left, rect.value.top - GRIP / 2, box.width, GRIP);
 
 /**
  * One more column, one more row: the two the mobile side offers as a plus at the
  * edge rather than through a menu, because they are what somebody filling a
- * table in reaches for over and over.
+ * table in reaches for over and over. Against the table, with no gap the
+ * pointer would have to cross to reach them.
  */
 const beyond = (side) =>
     side === 'column'
-        ? placed(rect.value.right + 4, rect.value.top, 18, rect.value.height)
-        : placed(rect.value.left, rect.value.bottom + 4, rect.value.width, 18);
+        ? placed(rect.value.right, rect.value.top, 18, rect.value.height)
+        : placed(rect.value.left, rect.value.bottom, rect.value.width, 18);
 
 function grow(side) {
     const cell = side === 'column' ? columns.value.at(-1) : rows.value.at(-1);
@@ -185,6 +203,7 @@ function grow(side) {
                 :is="controls.menu"
                 v-for="(cell, column) in columns"
                 :key="`column-${column}`"
+                data-side="column"
                 :actions="columnActions(cell)"
                 :label="labels.column"
                 :style="at(cell, 'column')"
@@ -196,6 +215,7 @@ function grow(side) {
                 :is="controls.menu"
                 v-for="(cell, row) in rows"
                 :key="`row-${row}`"
+                data-side="row"
                 :actions="rowActions(cell)"
                 :label="labels.row"
                 :style="at(cell, 'row')"

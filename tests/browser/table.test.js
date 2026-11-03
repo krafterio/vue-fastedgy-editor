@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { createFetcher } from 'vue-fastedgy';
 import { afterEach, describe, expect, it } from 'vitest';
+import { userEvent } from 'vitest/browser';
 
 import DocumentEditor from '../../components/DocumentEditor.vue';
 import DocumentViewer from '../../components/DocumentViewer.vue';
@@ -112,10 +113,97 @@ describe('a table', () => {
 });
 
 describe('the handles of a table', () => {
-    it('hang on the table, wherever its field sits on the page', async () => {
+    /** An editor holding a table, set away from the corner of the page. */
+    async function handled() {
         const holder = document.createElement('div');
+        const elsewhere = document.createElement('div');
 
         holder.style.cssText = 'position:absolute;left:300px;top:200px;width:600px';
+        elsewhere.style.cssText = 'position:absolute;left:0;top:0;width:40px;height:40px';
+        document.body.append(holder, elsewhere);
+        mounted.push(
+            mount(RichTextEditor, {
+                props: { features, modelValue: tableOf(2), editable: true },
+                attachTo: holder,
+                global: { plugins: [createPinia(), createFetcher()] },
+            })
+        );
+
+        await expect.poll(() => holder.querySelector('.ProseMirror[contenteditable] td')).not.toBeNull();
+        await userEvent.hover(holder.querySelector('.ProseMirror td'));
+        await expect.poll(() => holder.querySelector('[data-slot="editor-menu"][data-side="row"]')).not.toBeNull();
+
+        return {
+            holder,
+            elsewhere,
+            table: () => holder.querySelector('.ProseMirror table').getBoundingClientRect(),
+            handle: (slot, side) => holder.querySelector(`[data-slot="${slot}"][data-side="${side}"]`),
+        };
+    }
+
+    const middle = (box) => ({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+
+    it('stand astride the rules they take, wherever the field sits on the page', async () => {
+        const { table, handle } = await handled();
+        const box = table();
+
+        near(middle(handle('editor-menu', 'column').getBoundingClientRect()).y, box.top, 2);
+        near(middle(handle('editor-menu', 'row').getBoundingClientRect()).x, box.left, 2);
+        near(handle('editor-table-grow', 'column').getBoundingClientRect().left, box.right, 2);
+        near(handle('editor-table-grow', 'row').getBoundingClientRect().top, box.bottom, 2);
+    });
+
+    it('stay while the pointer goes to one, and while its menu is open', async () => {
+        const { holder, handle } = await handled();
+        const grip = handle('editor-menu', 'column');
+
+        await userEvent.hover(grip);
+        expect(grip.isConnected).toBe(true);
+
+        await userEvent.click(grip);
+        await expect
+            .poll(() => document.querySelector('[data-slot="editor-menu-content"] [role="menuitem"]'))
+            .not.toBeNull();
+        await userEvent.hover(document.querySelector('[data-slot="editor-menu-content"] [role="menuitem"]'));
+
+        expect(grip.isConnected).toBe(true);
+        expect(holder.querySelector('[data-slot="editor-table-grow"]')).not.toBeNull();
+
+        // The first action inserts a column to the left of the one the grip took.
+        await userEvent.click(document.querySelector('[data-slot="editor-menu-content"] [role="menuitem"]'));
+        await expect.poll(() => holder.querySelector('.ProseMirror table').rows[0].cells.length).toBe(3);
+    });
+
+    it('add a column and a row with their plus', async () => {
+        const { holder, handle } = await handled();
+        const shape = () => {
+            const table = holder.querySelector('.ProseMirror table');
+
+            return [table.rows.length, table.rows[0].cells.length];
+        };
+
+        await userEvent.click(handle('editor-table-grow', 'column'));
+        await expect.poll(shape).toEqual([2, 3]);
+
+        await userEvent.hover(holder.querySelector('.ProseMirror td'));
+        await userEvent.click(handle('editor-table-grow', 'row'));
+        await expect.poll(shape).toEqual([3, 3]);
+    });
+
+    it('go once the pointer is somewhere else', async () => {
+        const { holder, elsewhere } = await handled();
+
+        await userEvent.hover(elsewhere);
+
+        await expect.poll(() => holder.querySelector('[data-slot="editor-table-grow"]')).toBeNull();
+    });
+});
+
+describe('the edge of a column', () => {
+    it('shows where it is taken by when the pointer is on it', async () => {
+        const holder = document.createElement('div');
+
+        holder.style.cssText = 'position:absolute;left:0;top:0;width:600px';
         document.body.append(holder);
         mounted.push(
             mount(RichTextEditor, {
@@ -128,15 +216,43 @@ describe('the handles of a table', () => {
         await expect.poll(() => holder.querySelector('.ProseMirror[contenteditable] td')).not.toBeNull();
 
         const cell = holder.querySelector('.ProseMirror td');
+        const box = cell.getBoundingClientRect();
 
-        cell.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
-        await expect.poll(() => holder.querySelector('[data-slot="editor-table-grow"]')).not.toBeNull();
+        cell.dispatchEvent(
+            new MouseEvent('mousemove', { bubbles: true, clientX: box.right - 1, clientY: box.top + box.height / 2 })
+        );
+        await expect.poll(() => holder.querySelector('.column-resize-handle')).not.toBeNull();
 
-        // The plus that adds a column, beside the table's right edge.
-        const grow = holder.querySelector('[data-slot="editor-table-grow"]').getBoundingClientRect();
-        const table = holder.querySelector('.ProseMirror table').getBoundingClientRect();
+        const handle = holder.querySelector('.column-resize-handle').getBoundingClientRect();
 
-        near(grow.left, table.right + 4, 2);
-        near(grow.top, table.top, 2);
+        expect(handle.width).toBeGreaterThan(0);
+        near(handle.left + handle.width / 2, box.right, 3);
+        expect(getComputedStyle(holder.querySelector('.ProseMirror')).cursor).toBe('col-resize');
+    });
+});
+
+describe('a selection of cells', () => {
+    it('shows on the cells it holds', async () => {
+        const holder = document.createElement('div');
+
+        holder.style.cssText = 'position:absolute;left:0;top:0;width:600px';
+        document.body.append(holder);
+        mounted.push(
+            mount(RichTextEditor, {
+                props: { features, modelValue: tableOf(2), editable: true },
+                attachTo: holder,
+                global: { plugins: [createPinia(), createFetcher()] },
+            })
+        );
+
+        await expect.poll(() => holder.querySelector('.ProseMirror[contenteditable] td')).not.toBeNull();
+
+        // Three clicks take the whole cell.
+        await userEvent.tripleClick(holder.querySelector('.ProseMirror td'));
+        await expect.poll(() => holder.querySelector('.ProseMirror td.selectedCell')).not.toBeNull();
+
+        const shade = getComputedStyle(holder.querySelector('.ProseMirror td.selectedCell'), '::after').backgroundColor;
+
+        expect(shade).not.toBe('rgba(0, 0, 0, 0)');
     });
 });

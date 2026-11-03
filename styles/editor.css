@@ -628,6 +628,7 @@
 }
 
 .fe-editor :where(th, td) {
+    position: relative;
     border: 1px solid var(--fe-editor-border);
     padding: calc(2 * var(--fe-editor-space));
     vertical-align: top;
@@ -638,6 +639,38 @@
 .fe-editor th {
     background: var(--fe-editor-subtle-surface);
     text-align: left;
+}
+
+/*
+ * The edge a column is widened by, as the mobile side draws it: nothing of its
+ * own until the pointer is on it, then the rule thickens. prosemirror-tables
+ * lays the strip and names the cursor, and draws neither.
+ */
+.fe-editor .column-resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: -1px;
+    right: -2px;
+    width: 3px;
+    background: var(--fe-editor-strong-border);
+    pointer-events: none;
+}
+
+.fe-editor .resize-cursor {
+    cursor: col-resize;
+}
+
+/*
+ * Cells selected whole, by a drag across them or three clicks in one. The
+ * editor hides the text's own selection then, and draws nothing in its place:
+ * the cells carry it, under the veil a selected block wears.
+ */
+.fe-editor .selectedCell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--fe-editor-selection-veil);
+    pointer-events: none;
 }
 
 /*
