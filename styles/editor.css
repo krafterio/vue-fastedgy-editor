@@ -103,8 +103,9 @@
     --fe-editor-quote-bar-width: 4px;
     --fe-editor-quote-gutter: 26px;
 
-    /* What a column takes where nobody has resized it. */
+    /* What a column takes where nobody has resized it, and the least it narrows to. */
     --fe-editor-table-column: 160px;
+    --fe-editor-table-column-min: 80px;
 
     /*
      * The syntax palette, the native one: muted on purpose, enough contrast to
@@ -600,21 +601,32 @@
 }
 
 /*
- * A table is as wide as its columns, and no wider: the mobile side gives each
- * column a width and leaves the rest of the line empty, and a table stretched
- * to the page would read as a different document.
+ * A table fills its field, its columns keeping the proportions they were
+ * dragged to. The width and the minimum prosemirror-tables writes on the table
+ * from its columns are written inline, and would hold it to their sum.
  */
 .fe-editor table {
     border-collapse: collapse;
-    width: auto;
-    max-width: 100%;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+/* Past the narrowest its columns go, it scrolls inside its field. */
+.fe-editor .tableWrapper {
+    overflow-x: auto;
+}
+
+/* A column dragged carries its width inline, which this gives way to. */
+.fe-editor col {
+    width: var(--fe-editor-table-column);
 }
 
 .fe-editor :where(th, td) {
     border: 1px solid var(--fe-editor-border);
     padding: calc(2 * var(--fe-editor-space));
     vertical-align: top;
-    min-width: var(--fe-editor-table-column);
+    min-width: var(--fe-editor-table-column-min);
+    overflow-wrap: anywhere;
 }
 
 .fe-editor th {

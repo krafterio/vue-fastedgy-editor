@@ -30,9 +30,7 @@ const origin = ref({ left: 0, top: 0 });
 /** The table the pointer is over, and the position it starts at. */
 function follow(event) {
     const element = event.target instanceof Element ? event.target.closest('table') : null;
-    const holder = props.editor.view.dom;
-
-    if (!element || !holder.contains(element)) {
+    if (!element || !props.editor.view.dom.contains(element)) {
         table.value = null;
         rect.value = null;
 
