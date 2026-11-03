@@ -448,9 +448,15 @@
     gap: calc(2 * var(--fe-editor-space));
 }
 
+/* A long word wraps in the task rather than squeezing its box. */
+.fe-editor [data-slot='editor-task-body'] {
+    min-width: 0;
+}
+
 .fe-editor [data-slot='editor-task-check'] {
     display: grid;
     place-items: center;
+    flex-shrink: 0;
     width: 1rem;
     height: 1rem;
     margin-top: 0.2rem;
